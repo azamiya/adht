@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+
+# エディタ
+.vscode/
+.idea/
+
+# ビルド成果物
+dist/
+
+# Flutter / Dart（app/ 配下に作成予定）
+app/.dart_tool/
+app/.packages
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/ios/Pods/
+app/ios/.symlinks/
+app/ios/Flutter/ephemeral/
+app/android/.gradle/
+app/android/local.properties
+
+# 秘密情報（APIキーなど）
+*.env
+app/lib/secrets.dart

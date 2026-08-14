@@ -1,0 +1,290 @@
+/* =========================================================
+   adht 共通スタイル
+   全プロジェクト・全セッションが読み込む基底スタイル。
+   ここではデザイントークンとベース要素のリセット程度に留め、
+   セッション固有の見た目は各セッションの *.css で定義する。
+   ========================================================= */
+
+:root {
+  /* ---- カラートークン ---- */
+  --color-bg: #ffffff;
+  --color-bg-subtle: #f7f7f8;
+  --color-surface: #ffffff;
+  --color-border: #e5e5ea;
+  --color-border-strong: #c7c7cc;
+  --color-text: #1c1c1e;
+  --color-text-muted: #6b6b70;
+  --color-accent: #2d6cdf;
+  --color-accent-weak: #eaf0fb;
+  --color-warn-bg: #fff8e1;
+  --color-warn-border: #f1c84b;
+
+  /* ---- タイポグラフィ ---- */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+    "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-base: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-2xl: 28px;
+
+  /* ---- スペーシング ---- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+
+  --content-max: 880px;
+}
+
+/* ---- リセット & ベース ---- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: 1.7;
+  color: var(--color-text);
+  background: var(--color-bg-subtle);
+}
+
+main {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5);
+  background: var(--color-bg);
+  border-left: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.35;
+  margin: 0 0 var(--sp-3);
+}
+
+h1 {
+  font-size: var(--fs-2xl);
+}
+
+h2 {
+  font-size: var(--fs-xl);
+  margin-top: var(--sp-7);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+h3 {
+  font-size: var(--fs-lg);
+  margin-top: var(--sp-5);
+}
+
+p {
+  margin: 0 0 var(--sp-3);
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+ul,
+ol {
+  padding-left: 1.4em;
+  margin: 0 0 var(--sp-3);
+}
+
+li + li {
+  margin-top: var(--sp-1);
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: var(--color-bg-subtle);
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  word-break: break-word;
+}
+
+pre {
+  margin: var(--sp-3) 0;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+pre code {
+  display: block;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+  white-space: pre;
+  word-break: normal;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--sp-3) 0;
+  font-size: var(--fs-sm);
+}
+
+/* 横長のテーブルをモバイルでスクロール可能にするラッパ。
+   assets/table-scroll.js が全 table を自動で <div.table-scroll> で囲む。
+   端にうっすらシャドウが出て「横にスワイプできる」ことを示す。 */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background:
+    linear-gradient(to right, var(--color-bg), var(--color-bg)),
+    linear-gradient(to right, var(--color-bg), var(--color-bg)) 100% 0,
+    linear-gradient(to right, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0)),
+    linear-gradient(to left, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0)) 100% 0;
+  background-repeat: no-repeat;
+  background-size: 20px 100%, 20px 100%, 10px 100%, 10px 100%;
+  background-attachment: local, local, scroll, scroll;
+}
+
+.table-scroll > table {
+  margin: 0;
+}
+
+th,
+td {
+  border: 1px solid var(--color-border);
+  padding: var(--sp-2) var(--sp-3);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: var(--color-bg-subtle);
+  font-weight: 600;
+}
+
+/* ---- 共通コンポーネント ---- */
+
+/* パンくず */
+.breadcrumb {
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--sp-4);
+}
+
+.breadcrumb a {
+  color: var(--color-text-muted);
+}
+
+/* メタ情報（日付・参加者など） */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--sp-5);
+}
+
+.meta dt {
+  display: inline;
+  font-weight: 600;
+  margin-right: var(--sp-1);
+}
+
+.meta dd {
+  display: inline;
+  margin: 0 var(--sp-3) 0 0;
+}
+
+/* プレースホルダ枠（埋めるべき場所をわかりやすく） */
+.placeholder {
+  background: var(--color-warn-bg);
+  border: 1px dashed var(--color-warn-border);
+  border-radius: var(--radius-md);
+  padding: var(--sp-3) var(--sp-4);
+  color: #6b5300;
+  font-size: var(--fs-sm);
+}
+
+.placeholder::before {
+  content: "TODO: ";
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* ---- モバイル調整 ----
+   600px 以下では main の左右余白を詰め、pre/table のフォントを小さくして
+   コード塊や表が画面外にはみ出しにくくする。 */
+@media (max-width: 600px) {
+  main {
+    padding: var(--sp-4) var(--sp-3);
+    border-left: none;
+    border-right: none;
+  }
+
+  h1 {
+    font-size: var(--fs-xl);
+  }
+
+  h2 {
+    font-size: var(--fs-lg);
+    margin-top: var(--sp-6);
+  }
+
+  pre {
+    padding: var(--sp-2) var(--sp-3);
+    font-size: var(--fs-xs);
+    border-radius: var(--radius-sm);
+    margin-left: calc(-1 * var(--sp-3));
+    margin-right: calc(-1 * var(--sp-3));
+    border-left: none;
+    border-right: none;
+  }
+
+  table {
+    font-size: var(--fs-xs);
+  }
+
+  th,
+  td {
+    padding: var(--sp-1) var(--sp-2);
+  }
+
+  .meta {
+    gap: var(--sp-1) var(--sp-3);
+  }
+}

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ADHT — 動くプロトタイプ (iPhone 17)</title>
+  <link rel="stylesheet" href="prototype.css">
+</head>
+<body>
+  <header class="proto-header">
+    <a href="../index.html">← 仕様書に戻る</a>
+    <span>ADHT プロトタイプ v1.0 ／ iPhone 17 モック（AI提案はモック生成・データは localStorage 保存）</span>
+    <button id="resetBtn" title="サンプルデータに戻す">リセット</button>
+  </header>
+
+  <div class="stage">
+    <div class="phone">
+      <div class="phone-buttons">
+        <span class="btn-action"></span>
+        <span class="btn-vol-up"></span>
+        <span class="btn-vol-down"></span>
+        <span class="btn-power"></span>
+        <span class="btn-camera"></span>
+      </div>
+      <div class="screen">
+        <div class="dynamic-island"></div>
+
+        <div class="status-bar">
+          <span class="sb-time">9:41</span>
+          <span class="sb-icons">
+            <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1" opacity=".35"/></svg>
+            <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 9.5a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2zM8 5c1.9 0 3.6.8 4.8 2l-1.5 1.5A4.7 4.7 0 0 0 8 7.2c-1.3 0-2.4.5-3.3 1.3L3.2 7A6.7 6.7 0 0 1 8 5zM8 .5c3.1 0 6 1.3 8 3.3l-1.5 1.5A9.2 9.2 0 0 0 8 2.8 9.2 9.2 0 0 0 1.5 5.3L0 3.8C2 1.8 4.9.5 8 .5z"/></svg>
+            <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="0" width="21" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="14" height="8" rx="2"/><path d="M23 4v4c1-.3 1.6-1 1.6-2S24 4.3 23 4z" opacity=".4"/></svg>
+          </span>
+        </div>
+
+        <!-- ===== 画面: ブリーフィング ===== -->
+        <section id="screen-briefing" class="app-screen">
+          <div class="nav-large"><h1>今日のブリーフィング</h1></div>
+          <div class="scroll">
+            <div id="briefingMessage" class="briefing-message"></div>
+            <div id="briefingCards"></div>
+            <p class="briefing-footer">今日はこれだけでOK。全部のリストは「タスク」タブに。</p>
+          </div>
+        </section>
+
+        <!-- ===== 画面: タスク一覧 ===== -->
+        <section id="screen-list" class="app-screen">
+          <div class="nav-large"><h1>タスク</h1></div>
+          <div class="segmented" id="brainFilter">
+            <button data-filter="all" class="active">すべて</button>
+            <button data-filter="rightBrain">🎨 右脳</button>
+            <button data-filter="leftBrain">🧮 左脳</button>
+          </div>
+          <div class="scroll">
+            <div id="taskList"></div>
+          </div>
+          <button class="fab" id="fabAdd">＋</button>
+        </section>
+
+        <!-- ===== 画面: 設定 ===== -->
+        <section id="screen-settings" class="app-screen">
+          <div class="nav-large"><h1>設定</h1></div>
+          <div class="scroll">
+            <div class="settings-group">
+              <div class="settings-label">通知の口調</div>
+              <div class="segmented" id="toneSetting">
+                <button data-tone="gentle">やさしめ</button>
+                <button data-tone="tsukkomi">ツッコミ多め</button>
+              </div>
+              <p class="settings-note">どちらでも、恥をかかせる言い方は絶対にしません（仕様 §2.5）</p>
+            </div>
+            <div class="settings-group">
+              <div class="settings-label">朝ブリーフィングの時刻</div>
+              <input type="time" id="briefingHour" value="08:00">
+              <p class="settings-note">通知は朝1回＋期限当日のみ。しつこい通知はしません</p>
+            </div>
+            <div class="settings-group">
+              <div class="settings-label">タスクのエクスポート / インポート</div>
+              <p class="settings-note">バージョンアップでデータ形式が変わっても、JSONコピペで引っ越せます</p>
+              <div class="io-btns">
+                <button id="exportBtn">📤 エクスポート</button>
+                <button id="importBtn">📥 インポート</button>
+              </div>
+              <textarea id="ioArea" spellcheck="false" placeholder="エクスポート: ここにJSONが出ます（クリップボードにも自動コピー）&#10;インポート: ここにJSONを貼り付けて「インポート」を押す"></textarea>
+              <p class="settings-note io-status" id="ioStatus"></p>
+            </div>
+            <div class="settings-group">
+              <div class="settings-label">データ</div>
+              <p class="settings-note">この端末の中にだけ保存されます。サーバーには何も送りません（AI提案の生成時を除く）</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== 画面: タスク詳細（push） ===== -->
+        <section id="screen-detail" class="app-screen push-screen">
+          <div class="nav-bar">
+            <button class="nav-back" id="detailBack">‹ 戻る</button>
+            <span class="nav-title">タスク</span>
+            <button class="nav-action danger" id="detailDelete">削除</button>
+          </div>
+          <div class="scroll">
+            <div id="detailBody"></div>
+          </div>
+        </section>
+
+        <!-- ===== モーダル: タスク作成 ===== -->
+        <div id="sheet-backdrop" class="sheet-backdrop"></div>
+        <section id="sheet-create" class="sheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-header">
+            <button id="createCancel">キャンセル</button>
+            <span>新しいタスク</span>
+            <button id="createSave" class="primary" disabled>保存</button>
+          </div>
+          <div class="sheet-body">
+            <input type="text" id="inTitle" class="title-input" placeholder="何をやる？（例: HDMIキャプチャの調査）" maxlength="80">
+
+            <div class="form-label">脳タイプ <span class="req">必須</span></div>
+            <div class="segmented" id="inBrain">
+              <button data-value="rightBrain">🎨 右脳（創造・直感）</button>
+              <button data-value="leftBrain">🧮 左脳（論理・事務）</button>
+            </div>
+
+            <div class="form-label">Priority <span class="req">必須</span></div>
+            <div class="priority-row" id="inPriority">
+              <button data-value="gekiomo">🔥 激重</button>
+              <button data-value="omoi">重い</button>
+              <button data-value="futsuu">普通</button>
+              <button data-value="karui">軽い</button>
+            </div>
+
+            <div class="form-label">期限 <span class="req">必須</span></div>
+            <input type="date" id="inDeadline" class="date-input">
+
+            <p class="sheet-hint">保存すると、AIが着手の入口を A・B・C の3つ提案します</p>
+          </div>
+        </section>
+
+        <!-- ===== ダイアログ（iOS風アラート） ===== -->
+        <div id="dialog-backdrop" class="dialog-backdrop">
+          <div class="ios-dialog">
+            <div class="dialog-title" id="dialogTitle"></div>
+            <div class="dialog-msg" id="dialogMsg"></div>
+            <div class="dialog-btns">
+              <button id="dialogCancel">キャンセル</button>
+              <button id="dialogOk" class="dialog-primary"></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== タブバー ===== -->
+        <nav class="tab-bar">
+          <button data-screen="briefing" class="tab active"><span class="tab-icon">☀️</span>今日</button>
+          <button data-screen="list" class="tab"><span class="tab-icon">☑︎</span>タスク</button>
+          <button data-screen="settings" class="tab"><span class="tab-icon">⚙︎</span>設定</button>
+        </nav>
+
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="prototype.js"></script>
+</body>
+</html>
