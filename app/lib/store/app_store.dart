@@ -1,0 +1,235 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../ai/mock_ai.dart';
+import '../models/task.dart';
+
+/// インポート結果
+sealed class ImportResult {
+  const ImportResult();
+}
+
+class ImportSuccess extends ImportResult {
+  const ImportSuccess(this.count);
+  final int count;
+}
+
+class ImportError extends ImportResult {
+  const ImportError(this.message);
+  final String message;
+}
+
+/// アプリ全体の状態と永続化（ローカルのみ、仕様 §5）。
+/// 保存形式はエクスポートと同じ JSON なので、ストレージ移行にも強い。
+class AppStore extends ChangeNotifier {
+  AppStore(this._prefs, this.ai);
+
+  static const _tasksKey = 'adht-tasks';
+  static const _settingsKey = 'adht-settings';
+
+  final SharedPreferences _prefs;
+  final MockAi ai;
+
+  List<Task> tasks = [];
+  AppSettings settings = AppSettings();
+
+  /// その日のブリーフィング文面（画面出入りで変わりすぎないようキャッシュ）
+  String? _briefingText;
+
+  static Future<AppStore> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final store = AppStore(prefs, MockAi());
+    try {
+      final rawTasks = prefs.getString(_tasksKey);
+      if (rawTasks != null) {
+        store.tasks = (jsonDecode(rawTasks) as List)
+            .whereType<Map<String, dynamic>>()
+            .map(Task.fromJson)
+            .toList();
+      } else {
+        store.tasks = store._seedTasks();
+        store._persist();
+      }
+      final rawSettings = prefs.getString(_settingsKey);
+      if (rawSettings != null) {
+        store.settings =
+            AppSettings.fromJson(jsonDecode(rawSettings) as Map<String, dynamic>);
+      }
+    } catch (_) {
+      // 破損時はシードに戻す（個人利用・消えてもよい前提、仕様 §7）
+      store.tasks = store._seedTasks();
+      store._persist();
+    }
+    return store;
+  }
+
+  List<Task> _seedTasks() {
+    final now = DateTime.now();
+    Task seed(String title, BrainType b, Priority p, int days) {
+      final t = Task(
+        title: title,
+        brainType: b,
+        priority: p,
+        deadline: now.add(Duration(days: days)),
+      );
+      t.suggestions = ai.generateSuggestions(t);
+      return t;
+    }
+
+    return [
+      seed('HDMIキャプチャの調査を行う', BrainType.leftBrain, Priority.omoi, 2),
+      seed('ブログのアイキャッチ画像を作る', BrainType.rightBrain, Priority.futsuu, 1),
+      seed('経費精算をやる', BrainType.leftBrain, Priority.gekiomo, 0),
+      seed('新アプリのアイデアをラフに描く', BrainType.rightBrain, Priority.karui, 4),
+    ];
+  }
+
+  void _persist() {
+    _prefs.setString(
+        _tasksKey, jsonEncode(tasks.map((t) => t.toJson()).toList()));
+    _prefs.setString(_settingsKey, jsonEncode(settings.toJson()));
+  }
+
+  void _mutate(void Function() fn) {
+    fn();
+    _persist();
+    notifyListeners();
+  }
+
+  /* ---------- CRUD ---------- */
+
+  Task addTask({
+    required String title,
+    required BrainType brainType,
+    required Priority priority,
+    required DateTime deadline,
+  }) {
+    final task = Task(
+      title: title,
+      brainType: brainType,
+      priority: priority,
+      deadline: deadline,
+    );
+    _mutate(() => tasks.add(task));
+    return task;
+  }
+
+  Task? taskById(String id) {
+    for (final t in tasks) {
+      if (t.id == id) return t;
+    }
+    return null;
+  }
+
+  /// 完了 = 削除（仕様 §2.3: 履歴は残さない）
+  void completeTask(String id) => _mutate(() {
+        tasks.removeWhere((t) => t.id == id);
+      });
+
+  void deleteTask(String id) => completeTask(id);
+
+  void updateTask(Task task, void Function(Task) fn) => _mutate(() => fn(task));
+
+  /* ---------- 並び・抽出 ---------- */
+
+  List<Task> sorted(Iterable<Task> src) {
+    final list = [...src];
+    list.sort((a, b) {
+      final byDeadline = a.deadline.compareTo(b.deadline);
+      if (byDeadline != 0) return byDeadline;
+      return b.priority.weight.compareTo(a.priority.weight);
+    });
+    return list;
+  }
+
+  List<Task> byBrain(BrainType brain) =>
+      sorted(tasks.where((t) => t.brainType == brain));
+
+  /// ブリーフィング「今日はこの3つだけ」（仕様 §2.5）
+  List<Task> briefingPick() {
+    final list = [...tasks];
+    list.sort((a, b) => b.briefingScore.compareTo(a.briefingScore));
+    return list.take(3).toList();
+  }
+
+  String briefingText() {
+    final picked = briefingPick();
+    if (picked.isEmpty) return '今日のタスクはありません。ゆっくりどうぞ ☕';
+    return _briefingText ??=
+        ai.briefingMessage(picked.length, settings.tone);
+  }
+
+  /* ---------- 設定 ---------- */
+
+  void setTone(Tone tone) => _mutate(() {
+        settings.tone = tone;
+        _briefingText = null; // 口調変更は次の文面から反映
+      });
+
+  void setBriefingHour(int hour) => _mutate(() => settings.briefingHour = hour);
+
+  void resetToSeed() => _mutate(() {
+        tasks = _seedTasks();
+        _briefingText = null;
+      });
+
+  /* ---------- インポート / エクスポート（仕様 §2.4） ---------- */
+
+  String exportJson() => const JsonEncoder.withIndent('  ').convert({
+        'format': 'adht-tasks',
+        'version': 1,
+        'exportedAt': DateTime.now().toUtc().toIso8601String(),
+        'tasks': tasks.map((t) => t.toJson()).toList(),
+      });
+
+  /// JSON を検証してタスク数を返す（まだ取り込まない）。エラーならメッセージ。
+  ({List<Task>? tasks, String? error}) parseImport(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) {
+      return (tasks: null, error: 'インポートするJSONを貼り付けてください');
+    }
+    Object? parsed;
+    try {
+      parsed = jsonDecode(trimmed);
+    } catch (_) {
+      return (
+        tasks: null,
+        error: 'JSONとして読めませんでした。コピペが途中で切れていないか確認してください'
+      );
+    }
+    List<dynamic>? rawTasks;
+    if (parsed is List) {
+      rawTasks = parsed;
+    } else if (parsed is Map<String, dynamic>) {
+      final format = parsed['format'];
+      if (format != null && format != 'adht-tasks') {
+        return (tasks: null, error: '知らない形式です（format: $format）。何も変更していません');
+      }
+      rawTasks = parsed['tasks'] as List?;
+    }
+    if (rawTasks == null) {
+      return (tasks: null, error: 'tasks の配列が見つかりません。何も変更していません');
+    }
+    final imported = <Task>[];
+    for (final r in rawTasks) {
+      if (r is! Map<String, dynamic> ||
+          (r['title'] is! String) ||
+          (r['title'] as String).trim().isEmpty) {
+        return (tasks: null, error: 'title のないタスクが含まれています。何も変更していません');
+      }
+      imported.add(Task.fromJson(r));
+    }
+    return (tasks: imported, error: null);
+  }
+
+  /// 全置き換えで取り込む
+  ImportResult importTasks(List<Task> imported) {
+    _mutate(() {
+      tasks = imported;
+      _briefingText = null;
+    });
+    return ImportSuccess(imported.length);
+  }
+}
