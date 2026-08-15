@@ -171,13 +171,17 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 child: Wrap(
                   spacing: 6,
                   runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
+                    ProgressBattery(t.progress),
                     BrainBadge(t.brainType),
                     PriorityBadge(t.priority),
                     DeadlineBadge(t),
                   ],
                 ),
               ),
+              const SectionLabel('🔋 進捗'),
+              _progressCard(t),
               ..._stepSection(t),
               const SectionLabel('💬 AIと話して最初の一歩を決める'),
               _chatBox(t),
@@ -201,6 +205,66 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           ),
         );
       },
+    );
+  }
+
+  /// 進捗スライダー（0/25/50/75/100%、仕様 §2.3 v1.4）。電池マークは表示専用。
+  Widget _progressCard(Task t) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+      decoration: BoxDecoration(
+        color: AdhtColors.card,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: AdhtColors.accent,
+                    inactiveTrackColor: const Color(0xFFE4E4E9),
+                    thumbColor: Colors.white,
+                    overlayColor: AdhtColors.accent.withValues(alpha: 0.1),
+                    trackHeight: 6,
+                  ),
+                  child: Slider(
+                    value: t.progress.toDouble(),
+                    min: 0,
+                    max: 100,
+                    divisions: 4,
+                    onChanged: (v) =>
+                        store.updateTask(t, (x) => x.progress = v.round()),
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 52,
+                child: Text('${t.progress}%',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AdhtColors.accent)),
+              ),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('0', style: TextStyle(fontSize: 10.5, color: AdhtColors.muted)),
+                Text('25', style: TextStyle(fontSize: 10.5, color: AdhtColors.muted)),
+                Text('50', style: TextStyle(fontSize: 10.5, color: AdhtColors.muted)),
+                Text('75', style: TextStyle(fontSize: 10.5, color: AdhtColors.muted)),
+                Text('100', style: TextStyle(fontSize: 10.5, color: AdhtColors.muted)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

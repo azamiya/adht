@@ -76,6 +76,7 @@ class Task {
     List<ChatMessage>? chat,
     List<String>? suggestions,
     this.firstStep,
+    this.progress = 0,
     DateTime? createdAt,
   })  : id = id ?? _generateId(),
         chat = chat ?? [],
@@ -90,7 +91,20 @@ class Task {
   List<ChatMessage> chat;
   List<String> suggestions; // A・B・C の3案
   String? firstStep; // 決定した「最初の一歩」
+  int progress; // 進捗度 0/25/50/75/100 %（v1.4）
   final DateTime createdAt;
+
+  /// 進捗度の正規化（v1.4）。旧3段階(1/2/3)は 25/50/75% へ、それ以外の不正値は 0。
+  static int normalizeProgress(Object? v) {
+    if (v is num) {
+      final i = v.toInt();
+      if (const [0, 25, 50, 75, 100].contains(i)) return i;
+      if (i == 1) return 25;
+      if (i == 2) return 50;
+      if (i == 3) return 75;
+    }
+    return 0;
+  }
 
   /// 期限まで残り日数（マイナス = 超過）
   int get daysLeft {
@@ -140,6 +154,7 @@ class Task {
           (json['suggestions'] as List?)?.whereType<String>().take(3).toList() ??
               [],
       firstStep: json['firstStep'] as String?,
+      progress: normalizeProgress(json['progress']), // v1(進捗なし)は0で補完
       createdAt: parseDate(json['createdAt'], DateTime.now()),
     );
   }
@@ -153,6 +168,7 @@ class Task {
         'chat': chat.map((m) => m.toJson()).toList(),
         'suggestions': suggestions,
         'firstStep': firstStep,
+        'progress': progress,
         'createdAt': createdAt.toIso8601String(),
       };
 }

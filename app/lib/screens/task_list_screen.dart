@@ -285,7 +285,9 @@ class _TaskCard extends StatelessWidget {
     final badges = Wrap(
       spacing: compact ? 4 : 6,
       runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
+        ProgressBattery(task.progress),
         if (!compact) BrainBadge(task.brainType),
         PriorityBadge(task.priority),
         DeadlineBadge(task),

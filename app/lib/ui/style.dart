@@ -95,6 +95,66 @@ class DeadlineBadge extends StatelessWidget {
   }
 }
 
+/// 進捗度の充電池マーク（表示専用、仕様 §2.3 v1.4）
+/// 4目盛り: 25%=赤 / 50%=オレンジ / 75%以上=緑、0%は空
+class ProgressBattery extends StatelessWidget {
+  const ProgressBattery(this.progress, {super.key});
+
+  final int progress; // 0/25/50/75/100
+
+  Color get _color {
+    if (progress >= 75) return AdhtColors.green;
+    if (progress >= 50) return AdhtColors.rightBrain; // オレンジ
+    return AdhtColors.red;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bars = progress ~/ 25; // 0〜4
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(2.5),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFA5A5AD), width: 1.5),
+            borderRadius: BorderRadius.circular(4.5),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var i = 0; i < 4; i++) ...[
+                if (i > 0) const SizedBox(width: 2),
+                Container(
+                  width: 4.5,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: i < bars ? _color : const Color(0xFFE4E4E9),
+                    borderRadius: BorderRadius.circular(1.5),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        // 電池の端子
+        Container(
+          width: 3,
+          height: 7,
+          decoration: const BoxDecoration(
+            color: Color(0xFFA5A5AD),
+            borderRadius: BorderRadius.only(
+              topRight: Radius.circular(2),
+              bottomRight: Radius.circular(2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class SectionLabel extends StatelessWidget {
   const SectionLabel(this.text, {super.key});
   final String text;

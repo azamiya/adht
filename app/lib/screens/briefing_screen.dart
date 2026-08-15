@@ -124,7 +124,14 @@ class _BriefingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    // カード全体のタップでタスク詳細へ（ボタン類は各自のonPressedが優先される）
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => TaskDetailScreen(store: store, taskId: task.id)),
+      ),
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AdhtColors.card,
@@ -169,7 +176,9 @@ class _BriefingCard extends StatelessWidget {
           Wrap(
             spacing: 6,
             runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              ProgressBattery(task.progress),
               PriorityBadge(task.priority),
               AdhtBadge(task.priority.timeHint,
                   background: const Color(0xFFF0F0F5),
@@ -215,6 +224,7 @@ class _BriefingCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }

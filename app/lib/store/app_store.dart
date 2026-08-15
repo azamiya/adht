@@ -271,9 +271,13 @@ class AppStore extends ChangeNotifier {
 
   /* ---------- インポート / エクスポート（仕様 §2.4） ---------- */
 
+  /// エクスポートJSONの形式バージョン（仕様 §2.4）。
+  /// v2: progress（0-100%）追加。v1（〜アプリv1.3.0）のインポートは可（progress=0補完）。
+  static const exportFormatVersion = 2;
+
   String exportJson() => const JsonEncoder.withIndent('  ').convert({
         'format': 'adht-tasks',
-        'version': 1,
+        'version': exportFormatVersion,
         'exportedAt': DateTime.now().toUtc().toIso8601String(),
         'tasks': tasks.map((t) => t.toJson()).toList(),
       });
@@ -300,6 +304,15 @@ class AppStore extends ChangeNotifier {
       final format = parsed['format'];
       if (format != null && format != 'adht-tasks') {
         return (tasks: null, error: '知らない形式です（format: $format）。何も変更していません');
+      }
+      // 互換ルール（仕様 §2.4）: 旧→新は常に可。ダウングレードインポートは非対応。
+      final version = parsed['version'];
+      if (version is num && version > exportFormatVersion) {
+        return (
+          tasks: null,
+          error:
+              'このJSONはより新しい形式（version ${version.toInt()}）です。アプリを更新してからインポートしてください'
+        );
       }
       rawTasks = parsed['tasks'] as List?;
     }
