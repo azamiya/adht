@@ -8,8 +8,8 @@
   "use strict";
 
   // セマンティック バージョニング 2.0.0 準拠。修正ごとに更新する。
-  // 仕様書とバージョンを揃える（仕様書 v1.4 ⇔ アプリ v1.4.x）
-  const APP_VERSION = "1.4.0";
+  // 仕様書とバージョンを揃える（仕様書 v1.5 ⇔ アプリ v1.5.x）
+  const APP_VERSION = "1.5.0";
 
   // エクスポートJSONの形式バージョン。
   // v2: progress（進捗度 0-100%）追加。v1（〜アプリv1.3.0）のインポートは可（progress=0で補完）。
@@ -156,6 +156,25 @@
       `OK、それを最初の一歩にしよか。ボタン押すだけやで`,
     ];
     return replies[Math.floor(Math.random() * replies.length)];
+  }
+
+  // タスク単位のAI相談（v1.5）: 最初の一歩の決定後、このタスク専属の伴走役として答える。
+  // 実装時はタスク情報（タイトル・Priority・期限・進捗・決定した一歩・履歴）をGeminiに渡す。
+  function taskConsultReply(t, text) {
+    const step = t.firstStep || "決めた一歩";
+    if (/終わ|できた|完了|やった/.test(text)) {
+      return `ナイス！🎉 進捗スライダーを上げておきましょう。全部終わったなら「完了する」ボタンでスパッと消しちゃってください`;
+    }
+    if (/次|なにす|何す|どう進め|進め方|そのあと|その後/.test(text)) {
+      return `いまの一歩は「${step}」（進捗${t.progress}%）。それが済んだら、同じ要領で「次の5分」を決めるだけです。大きく考えなくてOK、刻んでいきましょう`;
+    }
+    if (/詰ま|わからない|分からない|むず|難し|とまっ|止まっ/.test(text)) {
+      return `詰まったのは一歩がまだ大きいサインです。「${t.title}」の中で「これならできる」と思える部分だけ切り出しましょう。資料を開くだけ、1行書くだけ、でも前進です`;
+    }
+    if (/だる|やる気|疲れ|しんど|むり|無理/.test(text)) {
+      return `無理しなくてOK。進捗${t.progress}%まで来てるのは事実です。今日は「${step}」の半分だけでも勝ちにしましょう。ダメなら明日の自分に任せて店じまいで正解`;
+    }
+    return `「${t.title}」の相談ですね。進め方でも気分でも何でもどうぞ。ちなみに決めた一歩は「${step}」、いま進捗${t.progress}%です`;
   }
 
   /* ---------- ブリーフィング文面（口調） ---------- */
@@ -551,8 +570,17 @@
     }).join("");
     const typingHtml = aiTyping
       ? `<div class="bubble ai typing"><span></span><span></span><span></span></div>` : "";
+    // チャットのモード（v1.5）: 最初の一歩の決定前=着手支援 / 決定後=タスク相談
+    const consultMode = !!t.firstStep;
+    const chatLabel = consultMode
+      ? "💬 AIにタスクを相談"
+      : "💬 AIと話して最初の一歩を決める";
+    const chatHintText = consultMode
+      ? `進め方も気分も、このタスクのことならなんでもどうぞ<br>（例:「次は何をすればいい？」「詰まった」）`
+      : `自分の言葉で書けば、それがそのまま最初の一歩になります<br>（例:「レシートを机に出すだけ」）`;
+    const chatPlaceholder = consultMode ? "このタスクについて相談…" : "やれそうなことを自分の言葉で…";
     const chatEmpty = !(t.chat || []).length && !aiTyping
-      ? `<div class="chat-hint">自分の言葉で書けば、それがそのまま最初の一歩になります<br>（例:「レシートを机に出すだけ」）</div>` : "";
+      ? `<div class="chat-hint">${chatHintText}</div>` : "";
 
     body.innerHTML = `
       <div class="detail-title">${esc(t.title)}</div>
@@ -574,11 +602,11 @@
 
       ${stepSection}
 
-      <div class="section-label">💬 AIと話して最初の一歩を決める</div>
+      <div class="section-label">${chatLabel}</div>
       <div class="chat-box">
         <div class="chat-thread" id="chatThread">${chatEmpty}${bubbles}${typingHtml}</div>
         <div class="chat-input-row">
-          <input type="text" id="chatInput" placeholder="やれそうなことを自分の言葉で…" ${aiTyping ? "disabled" : ""}>
+          <input type="text" id="chatInput" placeholder="${chatPlaceholder}" ${aiTyping ? "disabled" : ""}>
           <button id="chatSend" ${aiTyping ? "disabled" : ""}>↑</button>
         </div>
       </div>
@@ -653,9 +681,14 @@
       aiTyping = true;
       renderDetail(false);
       setTimeout(() => {
-        // ユーザー自身の言葉を軽く整えて「最初の一歩」候補として返す
-        // （A・B・C はいじらない — チャットは入力支援に徹する）
-        t.chat.push({ role: "ai", text: aiChatReply(), proposal: polishStep(text) });
+        if (t.firstStep) {
+          // 決定後: タスク専属の相談モード（v1.5）
+          t.chat.push({ role: "ai", text: taskConsultReply(t, text) });
+        } else {
+          // 決定前: ユーザー自身の言葉を軽く整えて「最初の一歩」候補として返す
+          // （A・B・C はいじらない — チャットは入力支援に徹する）
+          t.chat.push({ role: "ai", text: aiChatReply(), proposal: polishStep(text) });
+        }
         aiTyping = false;
         save();
         renderDetail(false);
@@ -997,6 +1030,16 @@
   showScreen(initial);
   renderList();
   if (hash === "detail" && state.tasks.length) openDetail(state.tasks[0].id); // 動作確認用
+  if (hash === "decided" && state.tasks.length) { // 動作確認用: 決定後のタスク相談モード
+    const t = state.tasks[0];
+    t.firstStep = t.suggestions[0] || "まず5分だけやってみる";
+    t.progress = 50;
+    t.chat = [
+      { role: "user", text: "次は何をすればいい？" },
+      { role: "ai", text: taskConsultReply(t, "次は何をすればいい？") },
+    ];
+    openDetail(t.id);
+  }
   if (hash === "consult" && !state.consult.length) { // 動作確認用デモ会話
     state.consult = [
       { role: "user", text: "今日明日でやらないといけないタスクはなに？" },

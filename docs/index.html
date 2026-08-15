@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ADHT — 仕様書 v1.4</title>
+  <title>ADHT — 仕様書 v1.5</title>
   <link rel="stylesheet" href="assets/common.css">
 </head>
 <body>
   <main>
     <nav class="breadcrumb">
-      adht / docs / 仕様書 v1.4
+      adht / docs / 仕様書 v1.5
     </nav>
 
     <h1>ADHT — Attention Deficit Hyperactivity Todo 仕様書</h1>
 
     <dl class="meta">
-      <dt>バージョン</dt><dd>v1.4（タスク進捗度 3 段階＋充電池マーク UI、JSON 形式 version 2 と後方互換インポート）</dd>
+      <dt>バージョン</dt><dd>v1.5（タスク単位の AI 相談 — 最初の一歩の決定後はチャットが「タスク相談」モードに切替）</dd>
       <dt>作成日</dt><dd>2026-08-15</dd>
       <dt>更新日</dt><dd>2026-08-15</dd>
       <dt>対象ユーザー</dt><dd>安谷屋 個人</dd>
@@ -112,6 +112,36 @@
       <li><strong>選択の即時フィードバック（v1.3）</strong> — A・B・C をタップしたら<strong>その場で選んだ行が「決定した一歩」に変化</strong>（✓マーク・ハイライト・他の案はフェードアウト）してから決定表示に切り替わる。画面遷移や戻る操作なしで、選んだことが必ず視覚的に分かること</li>
       <li>決定後は A・B・C のリストを畳み、<strong>決定した一歩だけを強調表示</strong>する（情報量を絞る）。「選び直す」でいつでも解除可能</li>
       <li>ブリーフィング画面には、決定済みならその一歩を「👣 決定した最初の一歩」として表示する</li>
+    </ul>
+
+    <h4>タスク単位の AI 相談（v1.5 追加）</h4>
+    <p>
+      タスク詳細のチャット欄は、<strong>「最初の一歩」が決定済みかどうかでモードが切り替わる</strong>。
+      決定前は着手支援、決定後はそのタスクの伴走役になる。
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 11em;">状態</th>
+          <th>チャット欄</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>最初の一歩が<strong>未決定</strong></td>
+          <td><strong>「💬 AIと話して最初の一歩を決める」</strong>を表示（v1.3 の入力支援チャット）。決定すると<strong>このチャットは非表示</strong>になる</td>
+        </tr>
+        <tr>
+          <td>最初の一歩が<strong>決定済み</strong></td>
+          <td><strong>「💬 AIにタスクを相談」</strong>を表示。進め方の相談（「次は何をすればいい？」）、詰まりの解消（「詰まった」→ 一歩をさらに小さく割る提案）、気分の吐き出し（励まし・進捗の肯定）に応じる。「終わった」と言えば進捗スライダーの更新や完了を促す</td>
+        </tr>
+      </tbody>
+    </table>
+    <ul>
+      <li><strong>「選び直す」を押して決定を解除すると、再び「AIと話して最初の一歩を決める」が表示される</strong>（モードは firstStep の有無に完全連動）</li>
+      <li>AI にはタスク情報（タイトル・脳タイプ・Priority・期限・進捗度・決定した最初の一歩・会話履歴）をコンテキストとして渡す</li>
+      <li>会話履歴は 1 本のスレッドとしてタスクに保存（モードが切り替わっても履歴は続く）</li>
+      <li>タブの「AIに相談」（§2.6 = アプリ横断）とは別物。こちらは<strong>このタスク専属</strong>の相談</li>
     </ul>
 
     <h3>2.3 タスク管理（最小限）</h3>
