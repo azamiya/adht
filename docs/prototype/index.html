@@ -49,8 +49,8 @@
           <div class="nav-large"><h1>タスク</h1></div>
           <div class="segmented" id="brainFilter">
             <button data-filter="all" class="active">すべて</button>
-            <button data-filter="rightBrain">🎨 右脳</button>
             <button data-filter="leftBrain">🧮 左脳</button>
+            <button data-filter="rightBrain">🎨 右脳</button>
           </div>
           <div class="scroll">
             <div id="taskList"></div>
@@ -58,12 +58,22 @@
           <button class="fab" id="fabAdd">＋</button>
         </section>
 
+        <!-- ===== 画面: AIに相談 ===== -->
+        <section id="screen-consult" class="app-screen">
+          <div class="nav-large"><h1>AIに相談</h1></div>
+          <div class="consult-thread" id="consultThread"></div>
+          <div class="consult-input-row">
+            <input type="text" id="consultInput" placeholder="なんでも聞いてOK…">
+            <button id="consultSend">↑</button>
+          </div>
+        </section>
+
         <!-- ===== 画面: 設定 ===== -->
         <section id="screen-settings" class="app-screen">
           <div class="nav-large"><h1>設定</h1></div>
           <div class="scroll">
             <div class="settings-group">
-              <div class="settings-label">通知の口調</div>
+              <div class="settings-label">ブリーフィングの口調</div>
               <div class="segmented" id="toneSetting">
                 <button data-tone="gentle">やさしめ</button>
                 <button data-tone="tsukkomi">ツッコミ多め</button>
@@ -78,17 +88,21 @@
             <div class="settings-group">
               <div class="settings-label">タスクのエクスポート / インポート</div>
               <p class="settings-note">バージョンアップでデータ形式が変わっても、JSONコピペで引っ越せます</p>
-              <div class="io-btns">
-                <button id="exportBtn">📤 エクスポート</button>
-                <button id="importBtn">📥 インポート</button>
+              <div class="io-label">📤 エクスポート</div>
+              <div class="io-btns export">
+                <button id="exportCopyBtn">📋 コピー</button>
+                <button id="exportFileBtn">💾 ファイル保存</button>
               </div>
-              <textarea id="ioArea" spellcheck="false" placeholder="エクスポート: ここにJSONが出ます（クリップボードにも自動コピー）&#10;インポート: ここにJSONを貼り付けて「インポート」を押す"></textarea>
+              <div class="io-label">📥 インポート</div>
+              <div class="io-btns import">
+                <button id="importPasteBtn">📋 貼り付けを取り込む</button>
+                <button id="importFileBtn">📁 ファイルを選ぶ</button>
+              </div>
+              <input type="file" id="importFileInput" accept=".json,application/json" hidden>
+              <textarea id="ioArea" spellcheck="false" placeholder="コピー: ここにJSONが出ます（クリップボードにも自動コピー）&#10;貼り付けインポート: ここにJSONを貼って「貼り付けを取り込む」"></textarea>
               <p class="settings-note io-status" id="ioStatus"></p>
             </div>
-            <div class="settings-group">
-              <div class="settings-label">データ</div>
-              <p class="settings-note">この端末の中にだけ保存されます。サーバーには何も送りません（AI提案の生成時を除く）</p>
-            </div>
+            <p class="app-version" id="appVersion"></p>
           </div>
         </section>
 
@@ -97,7 +111,10 @@
           <div class="nav-bar">
             <button class="nav-back" id="detailBack">‹ 戻る</button>
             <span class="nav-title">タスク</span>
-            <button class="nav-action danger" id="detailDelete">削除</button>
+            <span class="nav-action-group">
+              <button id="detailEdit">編集</button>
+              <button class="danger" id="detailDelete">削除</button>
+            </span>
           </div>
           <div class="scroll">
             <div id="detailBody"></div>
@@ -110,7 +127,7 @@
           <div class="sheet-handle"></div>
           <div class="sheet-header">
             <button id="createCancel">キャンセル</button>
-            <span>新しいタスク</span>
+            <span id="sheetTitle">新しいタスク</span>
             <button id="createSave" class="primary" disabled>保存</button>
           </div>
           <div class="sheet-body">
@@ -118,8 +135,8 @@
 
             <div class="form-label">脳タイプ <span class="req">必須</span></div>
             <div class="segmented" id="inBrain">
-              <button data-value="rightBrain">🎨 右脳（創造・直感）</button>
               <button data-value="leftBrain">🧮 左脳（論理・事務）</button>
+              <button data-value="rightBrain">🎨 右脳（創造・直感）</button>
             </div>
 
             <div class="form-label">Priority <span class="req">必須</span></div>
@@ -153,6 +170,7 @@
         <nav class="tab-bar">
           <button data-screen="briefing" class="tab active"><span class="tab-icon">☀️</span>今日</button>
           <button data-screen="list" class="tab"><span class="tab-icon">☑︎</span>タスク</button>
+          <button data-screen="consult" class="tab"><span class="tab-icon">💬</span>相談</button>
           <button data-screen="settings" class="tab"><span class="tab-icon">⚙︎</span>設定</button>
         </nav>
 

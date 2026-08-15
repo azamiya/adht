@@ -7,6 +7,10 @@
 (() => {
   "use strict";
 
+  // セマンティック バージョニング 2.0.0 準拠。修正ごとに更新する。
+  // 仕様書とバージョンを揃える（仕様書 v1.3 ⇔ アプリ v1.3.x）
+  const APP_VERSION = "1.3.0";
+
   const STORAGE_KEY = "adht-proto-v1";
   const PRIORITY = {
     gekiomo: { label: "🔥 激重", weight: 4, time: "まず5分だけ" },
@@ -78,10 +82,12 @@
       tasks: seedTasks(),
       settings: { tone: "gentle", briefingHour: "08:00" },
       filter: "all",
+      consult: [], // AIに相談の会話履歴
     };
     save();
   }
   if (!state) initState();
+  if (!Array.isArray(state.consult)) state.consult = []; // 旧データ移行
 
   /* ---------- モック AI ---------- */
 
@@ -129,33 +135,122 @@
     return picked.slice(0, 3);
   }
 
-  function aiChatReply(userText) {
+  // チャットは「AIが凝った提案を考える」のではなく「ユーザー自身の言葉を
+  // 最初の一歩に整えるのを支援する」役割（考えすぎ防止）。
+  function polishStep(userText) {
+    const t = userText.trim().replace(/[。！!]$/, "");
+    if (/^(まず|とりあえず|最初に)/.test(t)) return t;
+    return `まず5分だけ「${t}」をやってみる`;
+  }
+
+  function aiChatReply() {
     const replies = [
-      `なるほど、「${userText}」ですね。それ前提で上の入口を出し直しました。今なら A が一番ハードル低いと思います`,
-      `OK、条件に入れました。上の A・B・C を更新したので、ピンとくるものだけ見てください`,
-      `了解です。それを踏まえて入口を作り直しました。完璧じゃなくてOK、まず5分だけが合言葉です`,
-      `ええやん、だいぶ具体的になってきた。上の3つ、どれか1個だけ選んでみて`,
+      `いいですね、それでいきましょう。下のボタンでそのまま決定できます`,
+      `それぐらい小さくて十分です。決めちゃいましょう`,
+      `OK、それを最初の一歩にしよか。ボタン押すだけやで`,
     ];
     return replies[Math.floor(Math.random() * replies.length)];
   }
 
   /* ---------- ブリーフィング文面（口調） ---------- */
 
+  // ブリーフィング文面 = 今日やらないといけないタスクのざっくりまとめ ＋ 応援
   function briefingMessage(tasks) {
+    // まとめ部分（軽い順に受け取ったタスクを要約）
+    const names = tasks.map((t) => `「${t.title}」`).join("、");
+    const dueNow = tasks.filter((t) => daysLeft(t.deadline) <= 0);
+    let summary = `今日は${names}の${tasks.length}本立て。`;
+    if (dueNow.length) {
+      summary += `特に${dueNow.map((t) => `「${t.title}」`).join("と")}は今日が期限です。`;
+    }
+
+    // 応援部分（ハイブリッド口調: 基本やさしめ、ツッコミ設定なら確率を上げる。恥・人格否定は無し）
     const gentle = [
-      (n) => `おはようございます。今日はこの${n}つだけでOKです。1つ目の「最初の一歩」だけ、どうですか？`,
-      (n) => `全部やらなくて大丈夫。上から順じゃなくて、一番ラクそうなものから始めてOKです。`,
-      (n) => `今日の持ち時間は有限。だから${n}つに絞りました。5分だけ始めたら、あとは勝手に進みます。`,
+      `軽いものから5分だけ。それで十分前に進みます。応援してます！`,
+      `全部やらなくて大丈夫。1つ動いたら今日は勝ちです。頑張ろう！`,
+      `昨日の分は置いといて、今日の分だけでOK。あなたならいけます！`,
     ];
     const tsukkomi = [
-      (n) => `おはようさん。見て見ぬふりリスト、今日で1個減らそか。まずは${n}つ中どれか1つ、5分だけやで。`,
-      (n) => `はいはい、タブ100個開く前にこれ見て。今日は${n}つだけ。最初の一歩は用意しといたで。`,
-      (n) => `やる気が出るのを待っとっても来ぉへんで。5分だけ動いたらやる気が後から来るやつや。`,
+      `やり始めたら意外と進むやつやで。まず5分、応援しとるで！`,
+      `考える前にタイマー5分や。終わったら胸張ってええからな、頑張りや！`,
+      `一番軽いやつからでええねん。今日もぼちぼちいこか、応援してるで！`,
     ];
-    // ハイブリッド: 基本やさしめ、ツッコミ設定なら確率を上げる（恥・人格否定はどちらにも無し）
     const tsukkomiRate = state.settings.tone === "tsukkomi" ? 0.7 : 0.25;
     const pool = Math.random() < tsukkomiRate ? tsukkomi : gentle;
-    return pool[Math.floor(Math.random() * pool.length)](tasks.length);
+    const cheer = pool[Math.floor(Math.random() * pool.length)];
+
+    return `${summary}${cheer}`;
+  }
+
+  /* ---------- AIに相談（モック） ----------
+     タスクの状況を踏まえて答える。実装時は全タスク＋設定をコンテキストに
+     Gemini に渡す。恥・説教は禁止、常に「小さい入口」を添える。 */
+
+  function consultReply(text) {
+    const all = sortTasks([...state.tasks]);
+
+    // 期限が近いタスクを聞かれた（今日・明日・締切系）
+    if (/今日|明日|期限|締切|しめきり|やらないと|やるべき/.test(text)) {
+      const urgent = all.filter((t) => daysLeft(t.deadline) <= 1);
+      if (!urgent.length) {
+        return "今日明日が期限のタスクはありません。余裕のある日です ☕ もし進めるなら、一番軽いものを5分だけどうですか。";
+      }
+      const lines = urgent.map((t) => {
+        const d = daysLeft(t.deadline);
+        const when = d < 0 ? `${-d}日超過` : d === 0 ? "今日" : "明日";
+        return `・${t.title}（${PRIORITY[t.priority].label}・期限は${when}）`;
+      });
+      return `今日明日はこの${urgent.length}つです。軽い順に:\n${lines.join("\n")}\nまずは一番上を5分だけ、どうですか。`;
+    }
+
+    // やる気がしない・だるい系 → 責めずに一番軽い入口を渡す
+    if (/だる|やる気|疲れ|しんど|眠い|むり|無理|めんどう|面倒/.test(text)) {
+      if (!all.length) {
+        return "だるい日はそれでOK。タスクもゼロなので、今日は堂々と休みましょう。";
+      }
+      const lightest = all[0];
+      const step = lightest.firstStep || (lightest.suggestions[0] || "5分だけタイマーをセットする");
+      return `だるい日はそれでOKです。全部やらなくていい。\nもし1つだけなら、一番軽い「${lightest.title}」を。\n入口はこれだけ:「${step}」\n5分やってダメなら、今日は店じまいで正解です。`;
+    }
+
+    // タスク一覧系
+    if (/タスク|一覧|なにがある|何がある/.test(text)) {
+      if (!all.length) return "タスクはゼロです 🎉";
+      return `いま${all.length}件あります。軽い順に:\n${all.map((t) => `・${t.title}（${PRIORITY[t.priority].label}）`).join("\n")}`;
+    }
+
+    return "なんでも聞いてください。「今日やらないといけないのは？」でタスクを整理したり、「だるくてやる気がしない」って気分をこぼしてもらってもOKです。";
+  }
+
+  let consultTyping = false;
+
+  function renderConsult() {
+    const thread = $("#consultThread");
+    const bubbles = (state.consult || []).map((m) =>
+      `<div class="bubble ${m.role}">${esc(m.text)}</div>`).join("");
+    const typing = consultTyping
+      ? `<div class="bubble ai typing"><span></span><span></span><span></span></div>` : "";
+    const empty = !(state.consult || []).length && !consultTyping
+      ? `<div class="chat-hint">タスクのことも、気分のことも、なんでもどうぞ<br>（例:「今日明日でやらないといけないタスクは？」<br>「だるくてやる気がしない」）</div>` : "";
+    thread.innerHTML = empty + bubbles + typing;
+    thread.scrollTop = thread.scrollHeight;
+  }
+
+  function sendConsult() {
+    const input = $("#consultInput");
+    const text = input.value.trim();
+    if (!text || consultTyping) return;
+    input.value = "";
+    state.consult.push({ role: "user", text });
+    save();
+    consultTyping = true;
+    renderConsult();
+    setTimeout(() => {
+      state.consult.push({ role: "ai", text: consultReply(text) });
+      consultTyping = false;
+      save();
+      renderConsult();
+    }, 600 + Math.random() * 500);
   }
 
   /* ---------- ユーティリティ ---------- */
@@ -193,6 +288,7 @@
     });
     if (name === "briefing") renderBriefing();
     if (name === "list") renderList();
+    if (name === "consult") renderConsult();
     if (name === "settings") renderSettings();
   }
 
@@ -229,9 +325,12 @@
 
   /* ---------- レンダリング: 一覧 ---------- */
 
+  // 軽い順（軽い→激重）に表示。一番軽いものから始めるとエンジンがかかる。
+  // 同じ重さなら期限が近い順。
   function sortTasks(tasks) {
     return tasks.sort((a, b) =>
-      a.deadline.localeCompare(b.deadline) || PRIORITY[b.priority].weight - PRIORITY[a.priority].weight);
+      PRIORITY[a.priority].weight - PRIORITY[b.priority].weight ||
+      a.deadline.localeCompare(b.deadline));
   }
 
   function taskCardHtml(t, { compact = false, showBrain = true } = {}) {
@@ -312,14 +411,16 @@
   let briefingText = null; // 画面を出入りしても文面が毎回変わりすぎないようキャッシュ
 
   function briefingPick() {
-    // 期限の近さ × Priority でスコアリングし上位3件
-    return [...state.tasks]
+    // 期限の近さ × Priority でスコアリングし上位3件を選び、
+    // 表示は「軽い順」（一番軽いものから始めるとエンジンがかかる）
+    const picked = [...state.tasks]
       .sort((a, b) => {
         const sa = PRIORITY[a.priority].weight * 2 - daysLeft(a.deadline);
         const sb = PRIORITY[b.priority].weight * 2 - daysLeft(b.deadline);
         return sb - sa;
       })
       .slice(0, 3);
+    return sortTasks(picked);
   }
 
   function renderBriefing() {
@@ -334,7 +435,14 @@
       return;
     }
     if (!briefingText) briefingText = briefingMessage(tasks);
-    msgEl.innerHTML = `<div class="bm-date">${dateStr}　ADHTからのコメント</div>${esc(briefingText)}`;
+    msgEl.innerHTML = `
+      <div class="bm-date">${dateStr}　ADHTからのコメント</div>
+      <button class="bm-refresh" id="bmRefresh" title="ブリーフィングを更新">↻</button>
+      ${esc(briefingText)}`;
+    $("#bmRefresh").addEventListener("click", () => {
+      briefingText = null; // 次の render で作り直し
+      renderBriefing();
+    });
 
     cardsEl.innerHTML = tasks.map((t) => `
       <div class="briefing-card" data-id="${t.id}">
@@ -411,7 +519,7 @@
     const typingHtml = aiTyping
       ? `<div class="bubble ai typing"><span></span><span></span><span></span></div>` : "";
     const chatEmpty = !(t.chat || []).length && !aiTyping
-      ? `<div class="chat-hint">条件や気分を話すと、一歩を作り直します<br>（例:「予算1万円以内」「もっと簡単にして」）</div>` : "";
+      ? `<div class="chat-hint">自分の言葉で書けば、それがそのまま最初の一歩になります<br>（例:「レシートを机に出すだけ」）</div>` : "";
 
     body.innerHTML = `
       <div class="detail-title">${esc(t.title)}</div>
@@ -427,7 +535,7 @@
       <div class="chat-box">
         <div class="chat-thread" id="chatThread">${chatEmpty}${bubbles}${typingHtml}</div>
         <div class="chat-input-row">
-          <input type="text" id="chatInput" placeholder="AIに話しかける…" ${aiTyping ? "disabled" : ""}>
+          <input type="text" id="chatInput" placeholder="やれそうなことを自分の言葉で…" ${aiTyping ? "disabled" : ""}>
           <button id="chatSend" ${aiTyping ? "disabled" : ""}>↑</button>
         </div>
       </div>
@@ -435,13 +543,22 @@
       <button class="detail-done-btn" id="detailDone">✓ このタスクを完了する（リストから消えます）</button>
     `;
 
-    // A/B/C タップで決定
+    // A/B/C タップで決定 — 選んだ行がその場で「決定した一歩」に変化してから確定表示へ
     body.querySelectorAll("[data-pick]").forEach((el) => {
       el.addEventListener("click", () => {
-        t.firstStep = t.suggestions[Number(el.dataset.pick)];
-        save();
-        renderDetail(false);
-        renderBriefing();
+        if (el.classList.contains("picked")) return;
+        el.classList.add("picked");
+        el.querySelector(".pick-pill").textContent = "👣 決定！";
+        el.querySelector(".suggestion-num").textContent = "✓";
+        el.parentElement.querySelectorAll(".suggestion-item").forEach((row) => {
+          if (row !== el) row.classList.add("dimmed");
+        });
+        setTimeout(() => {
+          t.firstStep = t.suggestions[Number(el.dataset.pick)];
+          save();
+          renderDetail(false);
+          renderBriefing();
+        }, 550);
       });
     });
     // 決定を解除して選び直す
@@ -477,13 +594,13 @@
       aiTyping = true;
       renderDetail(false);
       setTimeout(() => {
-        t.suggestions = generateSuggestions(t);
-        // チャットからも「最初の一歩」を決定できるよう、返事に提案を添える
-        t.chat.push({ role: "ai", text: aiChatReply(text), proposal: t.suggestions[0] });
+        // ユーザー自身の言葉を軽く整えて「最初の一歩」候補として返す
+        // （A・B・C はいじらない — チャットは入力支援に徹する）
+        t.chat.push({ role: "ai", text: aiChatReply(), proposal: polishStep(text) });
         aiTyping = false;
         save();
         renderDetail(false);
-      }, 900 + Math.random() * 700);
+      }, 500 + Math.random() * 400);
     };
     $("#chatSend").addEventListener("click", sendChat);
     $("#chatInput").addEventListener("keydown", (e) => { if (e.key === "Enter") sendChat(); });
@@ -503,19 +620,27 @@
     $("#briefingHour").value = state.settings.briefingHour;
   }
 
-  /* ---------- 作成シート ---------- */
+  /* ---------- 作成・編集シート ---------- */
 
-  const draft = { title: "", brainType: null, priority: null, deadline: "" };
+  const draft = { title: "", brainType: null, priority: null, deadline: "", editingId: null };
 
-  function openSheet() {
-    draft.title = ""; draft.brainType = null; draft.priority = null; draft.deadline = today(1);
-    $("#inTitle").value = "";
+  function openSheet(editTask = null) {
+    draft.editingId = editTask ? editTask.id : null;
+    draft.title = editTask ? editTask.title : "";
+    draft.brainType = editTask ? editTask.brainType : null;
+    draft.priority = editTask ? editTask.priority : null;
+    draft.deadline = editTask ? editTask.deadline : today(1);
+    $("#sheetTitle").textContent = editTask ? "タスクを編集" : "新しいタスク";
+    $("#inTitle").value = draft.title;
     $("#inDeadline").value = draft.deadline;
-    document.querySelectorAll("#inBrain button, #inPriority button").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll("#inBrain button").forEach((b) =>
+      b.classList.toggle("active", b.dataset.value === draft.brainType));
+    document.querySelectorAll("#inPriority button").forEach((b) =>
+      b.classList.toggle("active", b.dataset.value === draft.priority));
     validateDraft();
     $("#sheet-backdrop").classList.add("open");
     $("#sheet-create").classList.add("open");
-    setTimeout(() => $("#inTitle").focus(), 350);
+    if (!editTask) setTimeout(() => $("#inTitle").focus(), 350);
   }
 
   function closeSheet() {
@@ -529,6 +654,36 @@
   }
 
   function saveDraft() {
+    // 編集モード: 既存タスクを更新（タイトル/脳タイプが変わったら提案を作り直す）
+    if (draft.editingId) {
+      const t = state.tasks.find((x) => x.id === draft.editingId);
+      if (t) {
+        const needsRegen =
+          t.title !== draft.title.trim() || t.brainType !== draft.brainType;
+        t.title = draft.title.trim();
+        t.brainType = draft.brainType;
+        t.priority = draft.priority;
+        t.deadline = draft.deadline;
+        save();
+        closeSheet();
+        renderList();
+        renderBriefing();
+        if (needsRegen) {
+          t.firstStep = null;
+          renderDetail(true);
+          setTimeout(() => {
+            t.suggestions = generateSuggestions(t);
+            save();
+            renderDetail(false);
+            renderBriefing();
+          }, 900 + Math.random() * 600);
+        } else {
+          renderDetail(false);
+        }
+      }
+      return;
+    }
+
     const t = mkTask(draft.title.trim(), draft.brainType, draft.priority, draft.deadline);
     state.tasks.push(t);
     save();
@@ -585,6 +740,10 @@
   });
 
   $("#detailBack").addEventListener("click", closeDetail);
+  $("#detailEdit").addEventListener("click", () => {
+    const t = state.tasks.find((x) => x.id === detailTaskId);
+    if (t) openSheet(t);
+  });
   $("#detailDelete").addEventListener("click", () => {
     if (detailTaskId) {
       state.tasks = state.tasks.filter((t) => t.id !== detailTaskId);
@@ -635,26 +794,42 @@
     el.style.color = isError ? "var(--ios-red)" : "var(--ios-green)";
   }
 
-  $("#exportBtn").addEventListener("click", () => {
-    const envelope = {
+  function buildExportJson() {
+    return JSON.stringify({
       format: "adht-tasks",
       version: 1,
       exportedAt: new Date().toISOString(),
       tasks: state.tasks,
-    };
-    const json = JSON.stringify(envelope, null, 2);
+    }, null, 2);
+  }
+
+  // エクスポート①: クリップボードにコピー
+  $("#exportCopyBtn").addEventListener("click", () => {
+    const json = buildExportJson();
     $("#ioArea").value = json;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(json)
-        .then(() => setIoStatus(`✓ ${state.tasks.length}件をエクスポートし、クリップボードにコピーしました`))
-        .catch(() => setIoStatus(`✓ ${state.tasks.length}件をエクスポートしました（下の欄から手動でコピーしてください）`));
+        .then(() => setIoStatus(`✓ ${state.tasks.length}件をクリップボードにコピーしました`))
+        .catch(() => setIoStatus(`✓ ${state.tasks.length}件を下の欄に出しました（手動でコピーしてください）`));
     } else {
-      setIoStatus(`✓ ${state.tasks.length}件をエクスポートしました（下の欄から手動でコピーしてください）`);
+      setIoStatus(`✓ ${state.tasks.length}件を下の欄に出しました（手動でコピーしてください）`);
     }
   });
 
-  $("#importBtn").addEventListener("click", () => {
-    const raw = $("#ioArea").value.trim();
+  // エクスポート②: JSONファイルとして保存
+  $("#exportFileBtn").addEventListener("click", () => {
+    const blob = new Blob([buildExportJson()], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `adht-tasks-${today(0)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    setIoStatus(`✓ ${state.tasks.length}件を ${a.download} として保存しました`);
+  });
+
+  // インポート共通処理（貼り付け / ファイル選択の両方から呼ぶ）
+  function runImport(raw) {
+    raw = (raw || "").trim();
     if (!raw) { setIoStatus("インポートするJSONを貼り付けてください", true); return; }
 
     let parsed;
@@ -710,7 +885,28 @@
       },
       onCancel: () => setIoStatus("インポートをキャンセルしました"),
     });
+  }
+
+  // インポート①: テキスト欄の貼り付けから
+  $("#importPasteBtn").addEventListener("click", () => runImport($("#ioArea").value));
+
+  // インポート②: JSONファイルを選択
+  $("#importFileBtn").addEventListener("click", () => $("#importFileInput").click());
+  $("#importFileInput").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      $("#ioArea").value = reader.result;
+      runImport(reader.result);
+    };
+    reader.onerror = () => setIoStatus("ファイルを読み込めませんでした", true);
+    reader.readAsText(file);
+    e.target.value = ""; // 同じファイルを続けて選べるようにリセット
   });
+
+  $("#consultSend").addEventListener("click", sendConsult);
+  $("#consultInput").addEventListener("keydown", (e) => { if (e.key === "Enter") sendConsult(); });
 
   $("#resetBtn").addEventListener("click", () => {
     if (confirm("サンプルデータに戻しますか？")) {
@@ -726,11 +922,23 @@
   document.querySelectorAll("#brainFilter button").forEach((x) => {
     x.classList.toggle("active", x.dataset.filter === (state.filter || "all"));
   });
+  $("#appVersion").textContent = `ADHT v${APP_VERSION}`;
+  document.querySelector(".proto-header span").textContent =
+    `ADHT プロトタイプ v${APP_VERSION} ／ iPhone 17 モック（AI提案はモック生成・データは localStorage 保存）`;
   const hash = location.hash.slice(1);
-  const initial = ["briefing", "list", "settings"].includes(hash) ? hash : "briefing";
+  const initial = ["briefing", "list", "consult", "settings"].includes(hash) ? hash : "briefing";
   showScreen(initial);
   renderList();
   if (hash === "detail" && state.tasks.length) openDetail(state.tasks[0].id); // 動作確認用
+  if (hash === "consult" && !state.consult.length) { // 動作確認用デモ会話
+    state.consult = [
+      { role: "user", text: "今日明日でやらないといけないタスクはなに？" },
+      { role: "ai", text: consultReply("今日明日でやらないといけないタスクはなに？") },
+      { role: "user", text: "だるくてやる気がしない" },
+      { role: "ai", text: consultReply("だるくてやる気がしない") },
+    ];
+    renderConsult();
+  }
   if (hash === "dialog") { // 動作確認用
     showScreen("settings");
     showDialog({

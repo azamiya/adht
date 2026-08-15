@@ -194,6 +194,8 @@ body {
 .nav-title { flex: 1; text-align: center; font-weight: 600; font-size: 16px; }
 .nav-back { min-width: 70px; text-align: left; }
 .nav-action { min-width: 70px; text-align: right; }
+.nav-action-group { display: flex; min-width: 70px; justify-content: flex-end; }
+.nav-action-group button { padding: 6px 6px; }
 
 /* ---- セグメントコントロール ---- */
 .segmented {
@@ -402,7 +404,26 @@ body {
   margin-bottom: 14px;
   box-shadow: 0 4px 14px rgba(94, 92, 230, 0.3);
 }
-.briefing-message .bm-date { font-size: 11.5px; opacity: 0.8; margin-bottom: 4px; }
+.briefing-message { position: relative; }
+.briefing-message .bm-date { font-size: 11.5px; opacity: 0.8; margin-bottom: 4px; padding-right: 32px; }
+
+.bm-refresh {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.4s, background 0.15s;
+}
+.bm-refresh:hover { background: rgba(255, 255, 255, 0.35); }
+.bm-refresh:active { transform: rotate(360deg); }
 
 .briefing-card {
   background: var(--ios-card);
@@ -453,8 +474,24 @@ body {
 }
 .suggestion-item:last-child { border-bottom: none; }
 
-.suggestion-item.pickable { cursor: pointer; align-items: center; }
+.suggestion-item.pickable {
+  cursor: pointer;
+  align-items: center;
+  transition: background 0.3s, opacity 0.35s, transform 0.35s;
+}
 .suggestion-item.pickable:hover { background: var(--accent-weak); }
+
+/* 選んだ行がその場で「決定した一歩」に変化する */
+.suggestion-item.picked {
+  background: var(--accent-weak);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.suggestion-item.picked .suggestion-num {
+  background: var(--accent);
+  color: #fff;
+}
+.suggestion-item.picked .pick-pill { background: var(--ios-green); }
+.suggestion-item.dimmed { opacity: 0.25; transform: scale(0.98); }
 .suggestion-item.pickable > span:nth-child(2) { flex: 1; }
 .pick-pill {
   flex-shrink: 0;
@@ -544,6 +581,7 @@ body {
   border-radius: 16px;
   font-size: 13.5px;
   line-height: 1.55;
+  white-space: pre-line;
 }
 .bubble.user {
   align-self: flex-end;
@@ -706,19 +744,25 @@ body {
 .settings-group .segmented { margin: 8px 0 4px; background: #ececf1; }
 .settings-label { font-size: 14px; font-weight: 700; }
 .settings-note { font-size: 12px; color: var(--ios-muted); line-height: 1.6; margin: 8px 0 0; }
-.io-btns { display: flex; gap: 8px; margin-top: 10px; }
+.io-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ios-muted);
+  margin-top: 12px;
+}
+.io-btns { display: flex; gap: 8px; margin-top: 6px; }
 .io-btns button {
   flex: 1;
   border: none;
   border-radius: 10px;
-  padding: 10px;
-  font-size: 13.5px;
+  padding: 10px 4px;
+  font-size: 12.5px;
   font-weight: 600;
   font-family: var(--font);
   cursor: pointer;
 }
-#exportBtn { background: var(--accent); color: #fff; }
-#importBtn { background: #f0f0f5; color: var(--ios-text); }
+.io-btns.export button { background: var(--accent); color: #fff; }
+.io-btns.import button { background: #f0f0f5; color: var(--ios-text); }
 
 #ioArea {
   width: 100%;
@@ -799,6 +843,54 @@ body {
 .dialog-btns button:active { background: rgba(0, 0, 0, 0.06); }
 .dialog-btns button + button { border-left: 0.5px solid #c9c9ce; }
 .dialog-primary { font-weight: 700; }
+
+/* ---- AIに相談 ---- */
+.consult-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scrollbar-width: none;
+}
+.consult-thread::-webkit-scrollbar { display: none; }
+.consult-thread .chat-hint { margin-top: 40px; }
+
+.consult-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px 12px;
+  background: var(--ios-bg);
+  border-top: 1px solid var(--ios-sep);
+}
+.consult-input-row input {
+  flex: 1;
+  border: none;
+  background: #fff;
+  border-radius: 18px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-family: var(--font);
+  outline: none;
+}
+.consult-input-row button {
+  width: 38px; height: 38px;
+  border: none; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  font-size: 17px; font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ---- バージョン表記 ---- */
+.app-version {
+  text-align: center;
+  color: var(--ios-muted);
+  font-size: 12px;
+  font-weight: 600;
+  margin: 4px 0 8px;
+}
 
 /* ---- タブバー ---- */
 .tab-bar {
