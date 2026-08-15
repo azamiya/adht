@@ -31,7 +31,8 @@ class BriefingScreen extends StatelessWidget {
           ),
           _BriefingMessage(
               dateStr: dateStr,
-              text: store.briefingText() ?? '（今日のコメントを考え中…）'),
+              text: store.briefingText() ?? '（今日のコメントを考え中…）',
+              onRefresh: store.refreshBriefing),
           const SizedBox(height: 14),
           for (final task in tasks) ...[
             _BriefingCard(store: store, task: task),
@@ -51,10 +52,12 @@ class BriefingScreen extends StatelessWidget {
 }
 
 class _BriefingMessage extends StatelessWidget {
-  const _BriefingMessage({required this.dateStr, required this.text});
+  const _BriefingMessage(
+      {required this.dateStr, required this.text, required this.onRefresh});
 
   final String dateStr;
   final String text;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -78,10 +81,31 @@ class _BriefingMessage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('$dateStr　ADHTからのコメント',
-              style: TextStyle(
-                  fontSize: 11.5,
-                  color: Colors.white.withValues(alpha: 0.8))),
+          Row(
+            children: [
+              Expanded(
+                child: Text('$dateStr　ADHTからのコメント',
+                    style: TextStyle(
+                        fontSize: 11.5,
+                        color: Colors.white.withValues(alpha: 0.8))),
+              ),
+              // ブリーフィング更新（仕様 §2.5 v1.3）
+              GestureDetector(
+                onTap: onRefresh,
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.22),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.refresh,
+                      size: 16, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
           Text(text,
               style: const TextStyle(

@@ -163,13 +163,14 @@ class _SegmentedFilter extends StatelessWidget {
         color: const Color(0xFFE3E3E8),
         borderRadius: BorderRadius.circular(10),
       ),
+      // UIルール: 左＝左脳、右＝右脳（仕様 §2.3）
       child: Row(
         children: [
           seg(BrainFilter.all, 'すべて'),
           const SizedBox(width: 2),
-          seg(BrainFilter.rightBrain, '🎨 右脳'),
-          const SizedBox(width: 2),
           seg(BrainFilter.leftBrain, '🧮 左脳'),
+          const SizedBox(width: 2),
+          seg(BrainFilter.rightBrain, '🎨 右脳'),
         ],
       ),
     );

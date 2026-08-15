@@ -31,12 +31,17 @@ class AppStore extends ChangeNotifier {
 
   static const _tasksKey = 'adht-tasks';
   static const _settingsKey = 'adht-settings';
+  static const _consultKey = 'adht-consult';
 
   final SharedPreferences _prefs;
   final AiClient ai;
 
   List<Task> tasks = [];
   AppSettings settings = AppSettings();
+
+  /// AIに相談の会話履歴（仕様 §2.6）
+  List<ChatMessage> consult = [];
+  bool consultTyping = false;
 
   /// その日のブリーフィング文面（画面出入りで変わりすぎないようキャッシュ）
   String? _briefingText;
@@ -64,6 +69,13 @@ class AppStore extends ChangeNotifier {
       if (rawSettings != null) {
         store.settings =
             AppSettings.fromJson(jsonDecode(rawSettings) as Map<String, dynamic>);
+      }
+      final rawConsult = prefs.getString(_consultKey);
+      if (rawConsult != null) {
+        store.consult = (jsonDecode(rawConsult) as List)
+            .whereType<Map<String, dynamic>>()
+            .map(ChatMessage.fromJson)
+            .toList();
       }
     } catch (_) {
       // 破損時はシードに戻す（個人利用・消えてもよい前提、仕様 §7）
@@ -106,6 +118,8 @@ class AppStore extends ChangeNotifier {
     _prefs.setString(
         _tasksKey, jsonEncode(tasks.map((t) => t.toJson()).toList()));
     _prefs.setString(_settingsKey, jsonEncode(settings.toJson()));
+    _prefs.setString(
+        _consultKey, jsonEncode(consult.map((m) => m.toJson()).toList()));
   }
 
   void _mutate(void Function() fn) {
@@ -150,12 +164,14 @@ class AppStore extends ChangeNotifier {
 
   /* ---------- 並び・抽出 ---------- */
 
+  /// 軽い順（軽い→激重）。同じ重さなら期限が近い順。
+  /// 一番軽いものから始めるとエンジンがかかる、という着手優先の並び（v1.3）。
   List<Task> sorted(Iterable<Task> src) {
     final list = [...src];
     list.sort((a, b) {
-      final byDeadline = a.deadline.compareTo(b.deadline);
-      if (byDeadline != 0) return byDeadline;
-      return b.priority.weight.compareTo(a.priority.weight);
+      final byWeight = a.priority.weight.compareTo(b.priority.weight);
+      if (byWeight != 0) return byWeight;
+      return a.deadline.compareTo(b.deadline);
     });
     return list;
   }
@@ -164,10 +180,11 @@ class AppStore extends ChangeNotifier {
       sorted(tasks.where((t) => t.brainType == brain));
 
   /// ブリーフィング「今日はこの3つだけ」（仕様 §2.5）
+  /// 選定は緊急度スコア、表示は軽い順（v1.3）
   List<Task> briefingPick() {
     final list = [...tasks];
     list.sort((a, b) => b.briefingScore.compareTo(a.briefingScore));
-    return list.take(3).toList();
+    return sorted(list.take(3).toList());
   }
 
   /// ブリーフィング文面。未生成なら null を返しつつ裏で生成を開始する。
@@ -186,6 +203,56 @@ class AppStore extends ChangeNotifier {
       });
     }
     return null;
+  }
+
+  /// ブリーフィングを作り直す（↻ 更新ボタン、仕様 §2.5 v1.3）
+  void refreshBriefing() {
+    _briefingText = null;
+    _briefingLoading = false;
+    notifyListeners(); // briefingText() が再生成を開始する
+  }
+
+  /* ---------- AIに相談（仕様 §2.6） ---------- */
+
+  Future<void> sendConsult(String text) async {
+    consult.add(ChatMessage(role: 'user', text: text));
+    consultTyping = true;
+    _persist();
+    notifyListeners();
+    try {
+      final reply = await ai.consult(sorted(tasks), settings.tone, text);
+      consult.add(ChatMessage(role: 'ai', text: reply));
+    } finally {
+      consultTyping = false;
+      _persist();
+      notifyListeners();
+    }
+  }
+
+  /* ---------- タスク編集（仕様 §2.3 v1.3） ---------- */
+
+  /// タイトル・脳タイプ・Priority・期限を更新。
+  /// タイトルまたは脳タイプが変わったら A・B・C を再生成し、決定もリセットする。
+  /// 戻り値: 提案の再生成が必要になったかどうか。
+  bool editTask(
+    Task task, {
+    required String title,
+    required BrainType brainType,
+    required Priority priority,
+    required DateTime deadline,
+  }) {
+    final needsRegen = task.title != title || task.brainType != brainType;
+    _mutate(() {
+      task.title = title;
+      task.brainType = brainType;
+      task.priority = priority;
+      task.deadline = deadline;
+      if (needsRegen) {
+        task.firstStep = null;
+        task.suggestions = [];
+      }
+    });
+    return needsRegen;
   }
 
   /* ---------- 設定 ---------- */

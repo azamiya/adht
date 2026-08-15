@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/briefing_screen.dart';
+import 'screens/consult_screen.dart';
 import 'screens/create_task_sheet.dart';
 import 'screens/settings_screen.dart';
 import 'screens/task_detail_screen.dart';
@@ -54,13 +55,14 @@ class _HomeShellState extends State<HomeShell> {
   AppStore get store => widget.store;
 
   Future<void> _addTask() async {
-    final task = await showCreateTaskSheet(context, store);
-    if (task != null && mounted) {
+    final result = await showTaskSheet(context, store);
+    if (result != null && mounted) {
       // 保存と同時にAI提案を自動生成（詳細画面側で生成が走る、仕様 §2.2）
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => TaskDetailScreen(store: store, taskId: task.id),
+          builder: (_) =>
+              TaskDetailScreen(store: store, taskId: result.task.id),
         ),
       );
     }
@@ -77,6 +79,7 @@ class _HomeShellState extends State<HomeShell> {
             children: [
               BriefingScreen(store: store),
               TaskListScreen(store: store),
+              ConsultScreen(store: store),
               SettingsScreen(store: store),
             ],
           ),
@@ -100,6 +103,8 @@ class _HomeShellState extends State<HomeShell> {
                   label: '今日'),
               NavigationDestination(
                   icon: Icon(Icons.check_box_outlined), label: 'タスク'),
+              NavigationDestination(
+                  icon: Icon(Icons.chat_bubble_outline), label: '相談'),
               NavigationDestination(
                   icon: Icon(Icons.settings_outlined), label: '設定'),
             ],

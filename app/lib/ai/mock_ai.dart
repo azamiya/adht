@@ -23,6 +23,12 @@ class MockAi implements AiClient {
     return out;
   }
 
+  String _deadlineWord(Task t) => t.daysLeft < 0
+      ? '期限を${-t.daysLeft}日超過'
+      : t.daysLeft == 0
+          ? '今日が期限'
+          : 'あと${t.daysLeft}日';
+
   /// 同期版（シード生成やフォールバックで使用）
   List<String> suggestionsSync(Task task) {
     final t = task.title.replaceFirst(RegExp(r'を?(行う|やる|する)$'), '');
@@ -53,43 +59,85 @@ class MockAi implements AiClient {
       ...generic,
       ...(task.brainType == BrainType.leftBrain ? left : right),
     ];
-    final userMsgs =
-        task.chat.where((m) => m.role == 'user').map((m) => m.text).toList();
-    final ctx = userMsgs.length > 2
-        ? userMsgs.sublist(userMsgs.length - 2).join('、')
-        : userMsgs.join('、');
-
-    final picked = _pick(pool, ctx.isEmpty ? 3 : 2);
-    if (ctx.isNotEmpty) {
-      picked.insert(0, '「$ctx」を踏まえて: まずその条件で「$t」の選択肢を1つだけ探してみる');
-    }
-    return picked.take(3).toList();
+    return _pick(pool, 3);
   }
 
-  String briefingSync(int taskCount, Tone tone) {
-    final gentle = [
-      'おはようございます。今日はこの$taskCountつだけでOKです。1つ目の「最初の一歩」だけ、どうですか？',
-      '全部やらなくて大丈夫。上から順じゃなくて、一番ラクそうなものから始めてOKです。',
-      '今日の持ち時間は有限。だから$taskCountつに絞りました。5分だけ始めたら、あとは勝手に進みます。',
-    ];
-    final tsukkomi = [
-      'おはようさん。見て見ぬふりリスト、今日で1個減らそか。まずは$taskCountつ中どれか1つ、5分だけやで。',
-      'はいはい、タブ100個開く前にこれ見て。今日は$taskCountつだけ。最初の一歩は用意しといたで。',
-      'やる気が出るのを待っとっても来ぉへんで。5分だけ動いたらやる気が後から来るやつや。',
-    ];
-    final tsukkomiRate = tone == Tone.tsukkomi ? 0.7 : 0.25;
-    final pool = _random.nextDouble() < tsukkomiRate ? tsukkomi : gentle;
-    return pool[_random.nextInt(pool.length)];
+  /// ユーザーの言葉を「最初の一歩」に軽く整える（v1.3: 入力支援に徹する）
+  String polishStep(String userText) {
+    final t = userText.trim().replaceFirst(RegExp(r'[。！!]$'), '');
+    if (RegExp(r'^(まず|とりあえず|最初に)').hasMatch(t)) return t;
+    return 'まず5分だけ「$t」をやってみる';
   }
 
-  String replySync(String userText) {
+  String replySync() {
     final replies = [
-      'なるほど、「$userText」ですね。それ前提で上の入口を出し直しました。今なら A が一番ハードル低いと思います',
-      'OK、条件に入れました。上の A・B・C を更新したので、ピンとくるものだけ見てください',
-      '了解です。それを踏まえて入口を作り直しました。完璧じゃなくてOK、まず5分だけが合言葉です',
-      'ええやん、だいぶ具体的になってきた。上の3つ、どれか1個だけ選んでみて',
+      'いいですね、それでいきましょう。下のボタンでそのまま決定できます',
+      'それぐらい小さくて十分です。決めちゃいましょう',
+      'OK、それを最初の一歩にしよか。ボタン押すだけやで',
     ];
     return replies[_random.nextInt(replies.length)];
+  }
+
+  /// ブリーフィング = 今日のまとめ ＋ 応援（v1.3）
+  String briefingSync(List<Task> tasks, Tone tone) {
+    final names = tasks.map((t) => '「${t.title}」').join('、');
+    final dueNow = tasks.where((t) => t.daysLeft <= 0).toList();
+    var summary = '今日は$namesの${tasks.length}本立て。';
+    if (dueNow.isNotEmpty) {
+      summary += '特に${dueNow.map((t) => '「${t.title}」').join('と')}は今日が期限です。';
+    }
+    final gentle = [
+      '軽いものから5分だけ。それで十分前に進みます。応援してます！',
+      '全部やらなくて大丈夫。1つ動いたら今日は勝ちです。頑張ろう！',
+      '昨日の分は置いといて、今日の分だけでOK。あなたならいけます！',
+    ];
+    final tsukkomi = [
+      'やり始めたら意外と進むやつやで。まず5分、応援しとるで！',
+      '考える前にタイマー5分や。終わったら胸張ってええからな、頑張りや！',
+      '一番軽いやつからでええねん。今日もぼちぼちいこか、応援してるで！',
+    ];
+    final rate = tone == Tone.tsukkomi ? 0.7 : 0.25;
+    final pool = _random.nextDouble() < rate ? tsukkomi : gentle;
+    return summary + pool[_random.nextInt(pool.length)];
+  }
+
+  /// AIに相談（v1.3）: タスク照会と気分相談に応じる
+  String consultSync(List<Task> tasks, String text) {
+    // tasks は軽い順で渡される前提
+    if (RegExp(r'今日|明日|期限|締切|しめきり|やらないと|やるべき').hasMatch(text)) {
+      final urgent = tasks.where((t) => t.daysLeft <= 1).toList();
+      if (urgent.isEmpty) {
+        return '今日明日が期限のタスクはありません。余裕のある日です ☕ もし進めるなら、一番軽いものを5分だけどうですか。';
+      }
+      final lines = urgent.map((t) {
+        final when = t.daysLeft < 0
+            ? '${-t.daysLeft}日超過'
+            : t.daysLeft == 0
+                ? '今日'
+                : '明日';
+        return '・${t.title}（${t.priority.label}・期限は$when）';
+      }).join('\n');
+      return '今日明日はこの${urgent.length}つです。軽い順に:\n$lines\nまずは一番上を5分だけ、どうですか。';
+    }
+    if (RegExp(r'だる|やる気|疲れ|しんど|眠い|むり|無理|めんどう|面倒').hasMatch(text)) {
+      if (tasks.isEmpty) {
+        return 'だるい日はそれでOK。タスクもゼロなので、今日は堂々と休みましょう。';
+      }
+      final lightest = tasks.first;
+      return 'だるい日はそれでOKです。全部やらなくていい。\n'
+          'もし1つだけなら、一番軽い「${lightest.title}」を。\n'
+          '入口はこれだけ:「${lightest.displayFirstStep}」\n'
+          '5分やってダメなら、今日は店じまいで正解です。';
+    }
+    if (RegExp(r'タスク|一覧|なにがある|何がある').hasMatch(text)) {
+      if (tasks.isEmpty) return 'タスクはゼロです 🎉';
+      final lines = tasks
+          .map((t) => '・${t.title}（${t.priority.label}・${_deadlineWord(t)}）')
+          .join('\n');
+      return 'いま${tasks.length}件あります。軽い順に:\n$lines';
+    }
+    return 'なんでも聞いてください。「今日やらないといけないのは？」でタスクを整理したり、'
+        '「だるくてやる気がしない」って気分をこぼしてもらってもOKです。';
   }
 
   @override
@@ -100,14 +148,21 @@ class MockAi implements AiClient {
 
   @override
   Future<ChatResult> chat(Task task, String userText) async {
-    await Future<void>.delayed(_latency);
-    return ChatResult(
-        reply: replySync(userText), suggestions: suggestionsSync(task));
+    await Future<void>.delayed(
+        Duration(milliseconds: 400 + _random.nextInt(400)));
+    return ChatResult(reply: replySync(), proposal: polishStep(userText));
   }
 
   @override
   Future<String> briefingMessage(List<Task> tasks, Tone tone) async {
     await Future<void>.delayed(const Duration(milliseconds: 300));
-    return briefingSync(tasks.length, tone);
+    return briefingSync(tasks, tone);
+  }
+
+  @override
+  Future<String> consult(List<Task> tasks, Tone tone, String userText) async {
+    await Future<void>.delayed(
+        Duration(milliseconds: 500 + _random.nextInt(400)));
+    return consultSync(tasks, userText);
   }
 }

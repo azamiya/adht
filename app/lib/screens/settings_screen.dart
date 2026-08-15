@@ -1,11 +1,20 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/task.dart';
 import '../store/app_store.dart';
 import '../ui/style.dart';
 
-/// ⑤ 設定: 口調・ブリーフィング時刻・JSONインポート/エクスポート（仕様 §2.4）
+/// アプリのバージョン（SemVer 2.0.0、仕様書とメジャー.マイナーを揃える。pubspec.yaml と同期）
+const String kAppVersion = '1.3.0';
+
+/// ⑥ 設定: 口調・ブリーフィング時刻・JSONインポート/エクスポート（仕様 §2.4）
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key, required this.store});
 
@@ -35,15 +44,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  Future<void> _export() async {
+  /* ---- エクスポート（仕様 §2.4 v1.3: コピー / ファイル保存） ---- */
+
+  Future<void> _exportCopy() async {
     final json = store.exportJson();
     _ioController.text = json;
     await Clipboard.setData(ClipboardData(text: json));
-    _setStatus('✓ ${store.tasks.length}件をエクスポートし、クリップボードにコピーしました');
+    _setStatus('✓ ${store.tasks.length}件をクリップボードにコピーしました');
   }
 
-  Future<void> _import() async {
-    final result = store.parseImport(_ioController.text);
+  Future<void> _exportFile() async {
+    try {
+      final now = DateTime.now();
+      final name =
+          'adht-tasks-${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}.json';
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/$name');
+      await file.writeAsString(store.exportJson());
+      // iOS は共有シート経由でファイル/AirDrop 等へ保存
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(file.path, mimeType: 'application/json')]),
+      );
+      _setStatus('✓ ${store.tasks.length}件を $name として書き出しました');
+    } catch (e) {
+      _setStatus('ファイル保存に失敗しました: $e', error: true);
+    }
+  }
+
+  /* ---- インポート（仕様 §2.4 v1.3: 貼り付け / ファイル選択） ---- */
+
+  Future<void> _runImport(String raw) async {
+    final result = store.parseImport(raw);
     if (result.error != null) {
       _setStatus(result.error!, error: true);
       return;
@@ -64,6 +95,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _setStatus('✓ ${imported.length}件のタスクをインポートしました');
   }
 
+  Future<void> _importPaste() => _runImport(_ioController.text);
+
+  Future<void> _importFile() async {
+    try {
+      final picked = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      if (picked == null) return; // キャンセル
+      final text = utf8.decode(await picked.readAsBytes());
+      _ioController.text = text;
+      await _runImport(text);
+    } catch (e) {
+      _setStatus('ファイルを読み込めませんでした: $e', error: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -77,7 +125,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700)),
           ),
           _group(
-            label: '通知の口調',
+            label: 'ブリーフィングの口調',
             children: [
               const SizedBox(height: 8),
               Row(
@@ -132,38 +180,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             label: 'タスクのエクスポート / インポート',
             children: [
               const SizedBox(height: 4),
-              const Text('バージョンアップでデータ形式が変わっても、JSONコピペで引っ越せます',
+              const Text('バージョンアップでデータ形式が変わっても、JSONで引っ越せます',
                   style: TextStyle(
                       fontSize: 12, height: 1.6, color: AdhtColors.muted)),
-              const SizedBox(height: 10),
+              _ioLabel('📤 エクスポート'),
               Row(
                 children: [
-                  Expanded(
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AdhtColors.accent,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
-                      onPressed: _export,
-                      child: const Text('📤 エクスポート',
-                          style: TextStyle(
-                              fontSize: 13.5, fontWeight: FontWeight.w600)),
-                    ),
-                  ),
+                  _ioBtn('📋 コピー', accent: true, onTap: _exportCopy),
                   const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFF0F0F5),
-                        foregroundColor: AdhtColors.text,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
-                      onPressed: _import,
-                      child: const Text('📥 インポート',
-                          style: TextStyle(
-                              fontSize: 13.5, fontWeight: FontWeight.w600)),
-                    ),
-                  ),
+                  _ioBtn('💾 ファイル保存', accent: true, onTap: _exportFile),
+                ],
+              ),
+              _ioLabel('📥 インポート'),
+              Row(
+                children: [
+                  _ioBtn('📋 貼り付けを取り込む', accent: false, onTap: _importPaste),
+                  const SizedBox(width: 8),
+                  _ioBtn('📁 ファイルを選ぶ', accent: false, onTap: _importFile),
                 ],
               ),
               const SizedBox(height: 10),
@@ -174,21 +207,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     fontSize: 11, height: 1.5, fontFamily: 'Menlo'),
                 decoration: InputDecoration(
                   hintText:
-                      'エクスポート: ここにJSONが出ます（クリップボードにも自動コピー）\nインポート: ここにJSONを貼り付けて「インポート」を押す',
-                  hintStyle:
-                      const TextStyle(fontSize: 11, height: 1.5),
+                      'コピー: ここにJSONが出ます（クリップボードにも自動コピー）\n貼り付けインポート: ここにJSONを貼って「貼り付けを取り込む」',
+                  hintStyle: const TextStyle(fontSize: 11, height: 1.5),
                   filled: true,
                   fillColor: const Color(0xFFFAFAFC),
                   contentPadding: const EdgeInsets.all(10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide:
-                        const BorderSide(color: AdhtColors.separator),
+                    borderSide: const BorderSide(color: AdhtColors.separator),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide:
-                        const BorderSide(color: AdhtColors.separator),
+                    borderSide: const BorderSide(color: AdhtColors.separator),
                   ),
                 ),
               ),
@@ -198,42 +228,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color:
-                            _ioError ? AdhtColors.red : AdhtColors.green)),
+                        color: _ioError ? AdhtColors.red : AdhtColors.green)),
               ],
             ],
           ),
-          _group(
-            label: 'データ',
-            children: [
-              const SizedBox(height: 4),
-              const Text(
-                'この端末の中にだけ保存されます。サーバーには何も送りません（AI提案の生成時を除く）',
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text('ADHT v$kAppVersion',
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: 12, height: 1.6, color: AdhtColors.muted),
-              ),
-              const SizedBox(height: 10),
-              TextButton(
-                style: TextButton.styleFrom(
-                    foregroundColor: AdhtColors.red,
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                onPressed: () async {
-                  final ok = await showConfirmDialog(
-                    context,
-                    title: 'サンプルデータに戻す',
-                    message: '現在のタスクをすべて消して、サンプルタスクに戻します。',
-                    okLabel: '戻す',
-                  );
-                  if (ok) store.resetToSeed();
-                },
-                child: const Text('サンプルデータに戻す',
-                    style: TextStyle(fontSize: 13)),
-              ),
-            ],
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AdhtColors.muted)),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _ioLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 6),
+      child: Text(text,
+          style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AdhtColors.muted)),
+    );
+  }
+
+  Widget _ioBtn(String label,
+      {required bool accent, required VoidCallback onTap}) {
+    return Expanded(
+      child: FilledButton(
+        style: FilledButton.styleFrom(
+          backgroundColor: accent ? AdhtColors.accent : const Color(0xFFF0F0F5),
+          foregroundColor: accent ? Colors.white : AdhtColors.text,
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        ),
+        onPressed: onTap,
+        child: Text(label,
+            style:
+                const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
       ),
     );
   }

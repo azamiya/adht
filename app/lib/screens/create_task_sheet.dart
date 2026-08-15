@@ -4,34 +4,47 @@ import '../models/task.dart';
 import '../store/app_store.dart';
 import '../ui/style.dart';
 
-/// ② タスク作成シート（仕様 §2.1: 必須4項目）
-/// 保存すると Task を返す。呼び出し側で詳細画面へ遷移して AI 提案を自動生成する。
-Future<Task?> showCreateTaskSheet(BuildContext context, AppStore store) {
-  return showModalBottomSheet<Task>(
+/// 作成・編集の結果
+class TaskSheetResult {
+  const TaskSheetResult({required this.task, required this.needsRegen});
+
+  final Task task;
+
+  /// 編集でタイトル/脳タイプが変わり、A・B・C の再生成が必要か
+  final bool needsRegen;
+}
+
+/// ② タスク作成シート（仕様 §2.1）。[edit] を渡すと編集モード（仕様 §2.3 v1.3）。
+Future<TaskSheetResult?> showTaskSheet(BuildContext context, AppStore store,
+    {Task? edit}) {
+  return showModalBottomSheet<TaskSheetResult>(
     context: context,
     isScrollControlled: true,
     backgroundColor: AdhtColors.bg,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
-    builder: (context) => _CreateTaskSheet(store: store),
+    builder: (context) => _TaskSheet(store: store, edit: edit),
   );
 }
 
-class _CreateTaskSheet extends StatefulWidget {
-  const _CreateTaskSheet({required this.store});
+class _TaskSheet extends StatefulWidget {
+  const _TaskSheet({required this.store, this.edit});
 
   final AppStore store;
+  final Task? edit;
 
   @override
-  State<_CreateTaskSheet> createState() => _CreateTaskSheetState();
+  State<_TaskSheet> createState() => _TaskSheetState();
 }
 
-class _CreateTaskSheetState extends State<_CreateTaskSheet> {
-  final _titleController = TextEditingController();
-  BrainType? _brainType;
-  Priority? _priority;
-  DateTime _deadline = DateTime.now().add(const Duration(days: 1));
+class _TaskSheetState extends State<_TaskSheet> {
+  late final TextEditingController _titleController =
+      TextEditingController(text: widget.edit?.title ?? '');
+  late BrainType? _brainType = widget.edit?.brainType;
+  late Priority? _priority = widget.edit?.priority;
+  late DateTime _deadline =
+      widget.edit?.deadline ?? DateTime.now().add(const Duration(days: 1));
 
   bool get _valid =>
       _titleController.text.trim().isNotEmpty &&
@@ -45,13 +58,26 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
   }
 
   void _save() {
+    final title = _titleController.text.trim();
+    if (widget.edit != null) {
+      final needsRegen = widget.store.editTask(
+        widget.edit!,
+        title: title,
+        brainType: _brainType!,
+        priority: _priority!,
+        deadline: _deadline,
+      );
+      Navigator.pop(
+          context, TaskSheetResult(task: widget.edit!, needsRegen: needsRegen));
+      return;
+    }
     final task = widget.store.addTask(
-      title: _titleController.text.trim(),
+      title: title,
       brainType: _brainType!,
       priority: _priority!,
       deadline: _deadline,
     );
-    Navigator.pop(context, task);
+    Navigator.pop(context, TaskSheetResult(task: task, needsRegen: true));
   }
 
   Future<void> _pickDate() async {
@@ -67,6 +93,7 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final isEdit = widget.edit != null;
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SafeArea(
@@ -94,9 +121,9 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
                     onPressed: () => Navigator.pop(context),
                     child: const Text('キャンセル'),
                   ),
-                  const Text('新しいタスク',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  Text(isEdit ? 'タスクを編集' : '新しいタスク',
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w700)),
                   TextButton(
                     onPressed: _valid ? _save : null,
                     child: const Text('保存',
@@ -107,7 +134,7 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
               const SizedBox(height: 4),
               TextField(
                 controller: _titleController,
-                autofocus: true,
+                autofocus: !isEdit,
                 maxLength: 80,
                 onChanged: (_) => setState(() {}),
                 style: const TextStyle(fontSize: 16),
@@ -124,22 +151,23 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
                 ),
               ),
               _formLabel('脳タイプ'),
+              // UIルール: 左＝左脳、右＝右脳（仕様 §2.3）
               Row(
                 children: [
-                  _choiceChip(
-                    label: '🎨 右脳（創造・直感）',
-                    selected: _brainType == BrainType.rightBrain,
-                    color: AdhtColors.rightBrain,
-                    onTap: () =>
-                        setState(() => _brainType = BrainType.rightBrain),
-                  ),
-                  const SizedBox(width: 8),
                   _choiceChip(
                     label: '🧮 左脳（論理・事務）',
                     selected: _brainType == BrainType.leftBrain,
                     color: AdhtColors.leftBrain,
                     onTap: () =>
                         setState(() => _brainType = BrainType.leftBrain),
+                  ),
+                  const SizedBox(width: 8),
+                  _choiceChip(
+                    label: '🎨 右脳（創造・直感）',
+                    selected: _brainType == BrainType.rightBrain,
+                    color: AdhtColors.rightBrain,
+                    onTap: () =>
+                        setState(() => _brainType = BrainType.rightBrain),
                   ),
                 ],
               ),
@@ -174,10 +202,13 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Center(
+              Center(
                 child: Text(
-                  '保存すると、AIが着手の入口を A・B・C の3つ提案します',
-                  style: TextStyle(fontSize: 12, color: AdhtColors.muted),
+                  isEdit
+                      ? 'タイトルか脳タイプを変えると、最初の一歩を作り直します'
+                      : '保存すると、AIが着手の入口を A・B・C の3つ提案します',
+                  style:
+                      const TextStyle(fontSize: 12, color: AdhtColors.muted),
                 ),
               ),
               const SizedBox(height: 8),

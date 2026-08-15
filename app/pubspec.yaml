@@ -1,15 +1,18 @@
 name: adht
 description: "A new Flutter project."
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.3.0+2
 
 environment:
   sdk: ^3.13.0
 
 dependencies:
+  file_picker: ^12.0.0
   flutter:
     sdk: flutter
   http: ^1.6.0
+  path_provider: ^2.1.6
+  share_plus: ^13.3.0
   shared_preferences: ^2.5.5
 
 dev_dependencies:
