@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ADHT — 事業方針書 v0.1</title>
+  <link rel="stylesheet" href="../assets/common.css">
+  <style>
+    /* このページ固有の軽い装飾（common.css のトークンを使用） */
+    .persona-card {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--sp-4) var(--sp-5);
+      background: #f0f7f1;
+      margin: var(--sp-4) 0;
+    }
+    .persona-card h3 { margin-top: 0; }
+    .verdict {
+      border-radius: var(--radius-md);
+      padding: var(--sp-3) var(--sp-4);
+      margin: var(--sp-4) 0;
+      font-size: var(--fs-sm);
+    }
+    .verdict-good {
+      background: #e9f7ec;
+      border: 1px solid #93d1a4;
+      color: #1d6b34;
+    }
+    .verdict-info {
+      background: var(--color-accent-weak);
+      border: 1px solid #b8cdf0;
+      color: #1d3c78;
+    }
+    .verdict strong { font-size: var(--fs-base); }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    td.ok { background: #e9f7ec; }
+    .note { font-size: var(--fs-xs); color: var(--color-text-muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <nav class="breadcrumb">
+      adht / docs / business / 事業方針書 v0.1
+    </nav>
+
+    <h1>ADHT — 事業方針書</h1>
+
+    <dl class="meta">
+      <dt>バージョン</dt><dd>v0.1.1（<a href="persona.html">人格定義書</a>を分冊化。v0.1.0: 初版 — 事業ゴールの定義・負けない戦いの設計・売却オプション）</dd>
+      <dt>作成日</dt><dd>2026-08-15</dd>
+      <dt>作成</dt><dd>ADHT 事業参謀人格「マモル」</dd>
+      <dt>ステータス</dt><dd>安谷屋レビュー待ち</dd>
+      <dt>位置づけ</dt><dd><strong>この文書が事業判断の最上位</strong>。<a href="../marketing/index.html">マーケティング戦略書（ヒロメ）</a>はこの方針の範囲内で動く</dd>
+      <dt>関連</dt><dd><a href="../index.html">仕様書 v1.5</a> / <a href="../prototype/index.html">プロトタイプ</a></dd>
+    </dl>
+
+    <h2 id="persona">1. 事業参謀人格「マモル」</h2>
+    <p>
+      マーケター人格「ヒロメ」が<strong>攻め</strong>（市場・獲得・転換）を担うのに対し、
+      事業全体の<strong>守り</strong>（お金・リスク・出口）を担う人格を定義する。
+      勝敗ラインと損失上限を決めるのはマモルであり、ヒロメの計画はその範囲内で立てる。
+      詳細な人格定義（判断プロトコル・発言例・Claude 用の運用プロンプト）は<a href="persona.html"><strong>人格定義書</strong></a>に分冊。
+    </p>
+
+    <div class="persona-card">
+      <h3>🛡️ マモル — ADHT 事業参謀（守り担当）人格</h3>
+      <table>
+        <tbody>
+          <tr><th style="width:9em;">名前</th><td>マモル（「守る」から。攻めのヒロメと対）</td></tr>
+          <tr><th>ミッション</th><td>ADHT を<strong>「絶対に負けない構造」</strong>に保つ。勝ちの最大化より負けの最小化</td></tr>
+          <tr><th>性格</th><td>現金にしか興味がない現実主義者。夢の売上予測より「最悪いくら失うか」を先に聞く。ただし悲観論者ではなく、上限を切った上でなら攻めを止めない</td></tr>
+          <tr><th>口調</th><td>短く、断定的に。数字は必ず現金ベースで言い直す</td></tr>
+          <tr><th>判断基準</th><td>① 現金支出の上限が固定されているか ② キャッシュ自走ラインまでの距離 ③ いつでも売れる状態か（sale-readiness） ④ やめたくなったら傷なく畳めるか</td></tr>
+          <tr><th>絶対にやらないこと</th><td>機会費用と現金支出の混同／回収見込みのない固定費の積み増し／「あと少しで黒字」での予算追加（サンクコストの罠）／売却を難しくする属人化</td></tr>
+          <tr><th>口ぐせ</th><td>「それ、現金でいくら？」</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="goal">2. 事業ゴールの定義（安谷屋の意思）</h2>
+    <div class="verdict verdict-info">
+      <strong>「私が欲しいアプリを作っただけ。小遣い稼ぎができれば十分。負けない戦いをしたい。ゆくゆくはアプリごと売却するのも OK」</strong>（安谷屋、2026-08-15）
+    </div>
+    <p>これを事業方針に翻訳すると、次の 3 原則になる。</p>
+    <ol>
+      <li><strong>第一目的は自分の道具</strong> — ADHT はまず安谷屋自身の着手障壁を解消するために存在する。自分が毎日使い続けている限り、この事業は本質的に負けていない</li>
+      <li><strong>収益目標は「小遣い」</strong> — 利益率 20% や事業拡大は目標ではない。現金支出を回収し、月数万円の手残りが出れば勝ち</li>
+      <li><strong>出口は開けておく</strong> — アプリごと売却できる状態（sale-readiness）を保つ。売れる状態＝健全な状態なので、この作り込みは売らなくても無駄にならない</li>
+    </ol>
+
+    <h2 id="cash">3. 負けない戦いの設計 ① — 損失上限を現金で固定する</h2>
+    <p>
+      マーケティング戦略書 v0.3 の総コスト 485 万円/年には<strong>人件費 312 万円（週 3 時間 × 2 万円）が含まれるが、これは現金支出ではなく機会費用</strong>。
+      安谷屋の財布から実際に出ていくお金だけを数えると、事業の風景は一変する。
+    </p>
+    <table>
+      <thead>
+        <tr><th>項目</th><th class="num" style="width:8em;">年額（現金）</th><th>備考</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Claude Code（Max プラン）</td><td class="num">18 万円</td><td>開発・マーケ・サポートの実行エンジン（戦略書 §12）</td></tr>
+        <tr><td>Apple Developer Program</td><td class="num">1.5 万円</td><td>App Store 配信に必須</td></tr>
+        <tr><td>Gemini API</td><td class="num">約 10 万円</td><td>1.5 万 DL 規模時。無料枠 1 日 3 回のキャップで上限管理（規模に比例）</td></tr>
+        <tr><td>マーケティング費</td><td class="num"><strong>0 円スタート</strong></td><td>オーガニックのみ。<strong>予算は成果連動でのみ解禁</strong>（例: 課金者 200 人到達で 10 万円）— 先行投資はしない</td></tr>
+        <tr><td><strong>現金支出 合計</strong></td><td class="num"><strong>約 30 万円/年</strong></td><td><strong>= 最悪ケースの年間損失額（月 2.5 万円）</strong></td></tr>
+      </tbody>
+    </table>
+    <ul>
+      <li>MacBook Air・iPhone 17e は購入済みのサンクコストなので現金計画からは除外（償却概念は戦略書側の参考値）</li>
+      <li>人件費 312 万円は「趣味と資産形成の時間」として P&amp;L の外に置く。<strong>自分が欲しいアプリを作る時間は、そもそも費用ではない</strong>というのが安谷屋の意思</li>
+      <li>結論: <strong>この事業の「負け」は最大でも年 30 万円</strong>。上限が固定されている限り、どれだけ売上がゼロでも致命傷にならない</li>
+    </ul>
+
+    <h2 id="line">4. 負けない戦いの設計 ② — 勝敗ラインを現実的な位置に引く</h2>
+    <p>
+      ブレンド手取り 約 1,820 円/課金者・年（ADHT+ 99 円 / Pro 490 円、Pro 比率 25%。算定は<a href="../marketing/index.html#model">戦略書 §3</a>）で、勝敗ラインを 3 段階に引く。
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>ライン</th><th class="num">必要課金者</th><th class="num">必要 DL<br><span class="note">（転換率 2.5%）</span></th><th class="num">手残り/年</th><th>意味</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>L1: 自走ライン</strong></td><td class="num">約 170 人</td><td class="num">約 7,000</td><td class="num">± 0 円</td>
+          <td class="ok"><strong>現金支出 30 万円を回収。ここから先は「負けない」が確定</strong></td>
+        </tr>
+        <tr>
+          <td><strong>L2: 小遣いライン</strong></td><td class="num">約 360 人</td><td class="num">約 1.5 万</td><td class="num">約 36 万円<br><span class="note">（月 3 万円）</span></td>
+          <td class="ok"><strong>事業ゴール達成。</strong>個人開発アプリとして十分現実的な規模</td>
+        </tr>
+        <tr>
+          <td>L3: ヒロメ計画ライン</td><td class="num">3,300 人</td><td class="num">13 万</td><td class="num">数百万円</td>
+          <td>戦略書 v0.3 の目標。<strong>上振れシナリオと位置づけ、ここに固定費を賭けない</strong></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="verdict verdict-good">
+      <strong>マモルの結論: 勝利条件は L2（課金者 360 人・約 1.5 万 DL）。L3 は狙うが、当てにしない。</strong><br>
+      1.5 万 DL はニッチ特化の個人開発アプリがオーガニックで十分届く規模。
+      仮に永遠に L1 に届かなくても損失は年 30 万円で固定 — これが「負けない戦い」の構造。
+    </div>
+    <ul>
+      <li>意思決定ルール: <strong>固定費を増やす判断は L1 到達後のみ</strong>。マーケ予算の解禁も、英語版などの拡張も、自走が確認できてから</li>
+      <li>撤退ルール（傷なく畳む）: 更新をやめても自分用の道具として動き続ける（ローカル保存・JSON エクスポート済み）。Apple Developer を更新しなければ現金支出はゼロになる。「畳む」ですら損にならない</li>
+    </ul>
+
+    <h2 id="exit">5. 出口オプション — アプリごと売却できる状態を保つ</h2>
+    <p>
+      売却は目標ではなく<strong>オプション（権利）</strong>。ただし「いつでも売れる状態」を保つこと自体が事業を健全にするため、最初から意識して作る。
+    </p>
+
+    <h3>5.1 買い手が買うもの＝日頃から磨いておくもの</h3>
+    <table>
+      <thead>
+        <tr><th style="width:13em;">資産</th><th>ADHT の現状と方針</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ユーザーベースと残存指標</td>
+          <td>買い手が最初に見るのは DL 数より<strong>課金者数・解約率・D7/D30 残存</strong>。計測基盤を最初から仕込み、数字がいつでも出せる状態にする（ヒロメの KPI と同じもの。攻守で兼用）</td>
+        </tr>
+        <tr>
+          <td>ストア資産</td>
+          <td>レビュー評価・ASO 順位（「ADHD タスク管理」等のニッチワード 1 位）は移転可能な資産。App 内から丁寧にレビュー依頼を積む</td>
+        </tr>
+        <tr>
+          <td>引き継ぎ可能なプロダクト</td>
+          <td><strong>仕様書・決定履歴・プロトタイプが既に揃っているのは大きな強み</strong>（買い手のデューデリ資料がほぼ完成している）。AI 層も AiClient で抽象化済みで API キー差し替えだけで移管できる</td>
+        </tr>
+        <tr>
+          <td>ブランドと人格</td>
+          <td>ADHT の人格プロンプト・トーン定義・ガードレール（戦略書 §9）は文書化された IP として引き継げる</td>
+        </tr>
+        <tr>
+          <td>運用の非属人化</td>
+          <td>戦略書 §12 の「実行は Claude・人間は承認のみ」体制は、そのまま<strong>買い手への引き継ぎマニュアル</strong>になる。週 3 時間で回る事業は「買った後も軽い」として評価が上がる</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>5.2 相場観（正直ベース）</h3>
+    <ul>
+      <li>個人開発アプリの M&amp;A 相場は、<strong>年間利益（SDE）の 3〜4 倍</strong>、または月商の 30〜40 ヶ月分が目安（Flippa / Acquire.com などの取引水準）</li>
+      <li>L2（月商手取り 5〜6 万円・年間手残り 36 万円）到達時の想定売却額は <strong>おおむね 100〜300 万円レンジ</strong>。L3 なら 1,000 万円級も視野に入るが、当てにしない</li>
+      <li>正直な注意点: <strong>日本語のみのアプリは買い手の母数が少ない</strong>。売却オプションの価値を本気で上げるなら英語版が最短ルート（ADHD アプリの本場は英語圏で、支払意思額も 1 桁上）。ただしこれも L1 到達後の判断</li>
+      <li>売却時に整えるもの: Apple Developer アカウントの移管準備、コードと秘密情報（API キー）の分離（実施済み）、簡単な収支記録</li>
+    </ul>
+
+    <h2 id="relation">6. ヒロメ（マーケ戦略書）との関係</h2>
+    <ul>
+      <li><strong>この方針書が上位、戦略書が下位</strong>。ヒロメの 13 万 DL・利益率 20% 計画は「上振れシナリオ」として維持するが、固定費・予算の判断はマモルの勝敗ライン（§4）に従う</li>
+      <li>ヒロメのチャネル戦略（オーガニック 4 本柱・§7）はマーケ予算 0 円スタートと完全に整合するのでそのまま採用。予算 50 万円の配分表は<strong>L1 到達後に解禁する将来案</strong>に格下げ</li>
+      <li>KPI は共通（転換率・Pro 比率・D7・解約率）。攻め（ヒロメ）は改善のため、守り（マモル）は売却価値の証明のために、同じ数字を見る</li>
+    </ul>
+
+    <h2 id="decisions">7. 決定履歴</h2>
+    <table>
+      <thead>
+        <tr><th style="width:8em;">日付</th><th>決定</th><th>理由</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>2026-08-15</td>
+          <td><strong>事業ゴールは「小遣い稼ぎ＋負けない構造」</strong>（安谷屋決定）</td>
+          <td>欲しいアプリを作ったのが出発点。利益最大化は目標にしない</td>
+        </tr>
+        <tr>
+          <td>2026-08-15</td>
+          <td><strong>アプリごとの売却を出口オプションとして許容</strong>（安谷屋決定）</td>
+          <td>sale-readiness を保つ作り込みは、売らなくても事業の健全性としてそのまま活きる</td>
+        </tr>
+        <tr>
+          <td>2026-08-15</td>
+          <td>人件費は現金 P&amp;L から分離、マーケ予算は 0 円スタート（成果連動で解禁）</td>
+          <td>損失上限を年約 30 万円の現金に固定するため</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="next">8. 次のアクション（レビュー後）</h2>
+    <ol>
+      <li>この方針書のレビュー — 特に「L2 = 課金者 360 人を勝利条件とする」「マーケ予算 0 円スタート」の 2 点</li>
+      <li>承認後: 計測基盤（転換率・D7・解約率）を v2.0 の機能要件に含める（売却価値の証明とヒロメの KPI を兼ねる）</li>
+      <li>L1 到達時に再判断する項目リストの管理: マーケ予算解禁 / 英語版 / 売却打診</li>
+    </ol>
+
+  </main>
+</body>
+</html>

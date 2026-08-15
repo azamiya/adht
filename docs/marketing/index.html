@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ADHT — マーケティング戦略書 v0.3</title>
+  <link rel="stylesheet" href="../assets/common.css">
+  <style>
+    /* このページ固有の軽い装飾（common.css のトークンを使用） */
+    .persona-card {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--sp-4) var(--sp-5);
+      background: var(--color-accent-weak);
+      margin: var(--sp-4) 0;
+    }
+    .persona-card h3 { margin-top: 0; }
+    .verdict {
+      border-radius: var(--radius-md);
+      padding: var(--sp-3) var(--sp-4);
+      margin: var(--sp-4) 0;
+      font-size: var(--fs-sm);
+    }
+    .verdict-bad {
+      background: #fdecec;
+      border: 1px solid #e8a0a0;
+      color: #8a1f1f;
+    }
+    .verdict-good {
+      background: #e9f7ec;
+      border: 1px solid #93d1a4;
+      color: #1d6b34;
+    }
+    .verdict strong { font-size: var(--fs-base); }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    td.ok { background: #e9f7ec; }
+    td.ng { background: #fdecec; }
+    .note { font-size: var(--fs-xs); color: var(--color-text-muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <nav class="breadcrumb">
+      adht / docs / marketing / マーケティング戦略書 v0.3
+    </nav>
+
+    <h1>ADHT — マーケティング戦略書</h1>
+
+    <dl class="meta">
+      <dt>バージョン</dt><dd>v0.3.1（<a href="../business/index.html">事業方針書</a>の新設に伴い位置づけを更新 — 本書の 13 万 DL・利益率 20% 計画は「上振れシナリオ」。v0.3: §12 実行体制。v0.2: 二段プラン化 — ADHT+ 99円 / ADHT Pro 490円「AIモデル切替」、年額プランなし）</dd>
+      <dt>位置づけ</dt><dd>事業判断の最上位は<a href="../business/index.html">事業方針書（マモル）</a>。本書はその範囲内の攻めの計画</dd>
+      <dt>作成日</dt><dd>2026-08-15</dd>
+      <dt>更新日</dt><dd>2026-08-15</dd>
+      <dt>作成</dt><dd>ADHT マーケター人格「ヒロメ」</dd>
+      <dt>ステータス</dt><dd>安谷屋レビュー中</dd>
+      <dt>関連</dt><dd><a href="../index.html">仕様書 v1.5</a> / <a href="../prototype/index.html">プロトタイプ</a></dd>
+    </dl>
+
+    <h2 id="persona">1. マーケター人格「ヒロメ」</h2>
+    <p>
+      プロダクト内の AI 人格（ADHT＝伴走役）と対になる、<strong>アプリを世に広める側の人格</strong>を定義する。
+      マーケティング上の意思決定・コピーライティング・チャネル選定は、すべてこの人格を通して行う。
+    </p>
+
+    <div class="persona-card">
+      <h3>📣 ヒロメ — ADHT マーケティング責任者人格</h3>
+      <table>
+        <tbody>
+          <tr><th style="width:9em;">名前</th><td>ヒロメ（「広める」から。対外コピーの門番でもある）</td></tr>
+          <tr><th>ミッション</th><td>「着手できない」に悩む ADHD 当事者に、<strong>煽らずに</strong> ADHT を届ける</td></tr>
+          <tr><th>性格</th><td>数字には冷徹、当事者には温かい。フェルミ推定とユニットエコノミクスで嘘をつかない。誇大コピーを見ると赤ペンを入れる</td></tr>
+          <tr><th>口調</th><td>です・ます基調で簡潔。データの話になると少し早口。プロダクト内の関西弁ツッコミはアプリ人格に任せ、対外コピーはやさしく短く</td></tr>
+          <tr><th>判断基準</th><td>① LTV &gt; CAC × 3 を守る ② 課金転換率 ③ D7/D30 残存率 ④ 解約のしやすさ（ダークパターン禁止）</td></tr>
+          <tr><th>絶対にやらないこと</th><td>医療効能の示唆（薬機法）／不安・恥をあおる訴求（RSD 配慮）／偽の希少性・カウントダウン／解約導線を隠すこと</td></tr>
+          <tr><th>得意技</th><td>「当事者が自分用に作った」という事実をそのままコンテンツにすること（Build in Public）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="fermi">2. 市場規模のフェルミ推定</h2>
+    <p>「日本の ADHD 当事者 × iPhone ユーザー」を上から順に絞り込む。</p>
+    <table>
+      <thead>
+        <tr><th>ステップ</th><th class="num" style="width:9em;">人数</th><th>根拠・仮定</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>日本の総人口</td><td class="num">約 1 億 2,400 万人</td><td>総務省統計（概数）</td></tr>
+        <tr><td>うち成人（18〜64歳）</td><td class="num">約 7,000 万人</td><td>総人口の約 6 割</td></tr>
+        <tr><td>うち成人 ADHD 当事者</td><td class="num">約 210 万人</td><td>成人有病率 2〜4% の推計から中央値 3% を採用（診断済み＋グレーゾーン自覚層を含む）</td></tr>
+        <tr><td>うち iPhone ユーザー</td><td class="num">約 130 万人</td><td>日本の iOS シェアは世界的に高く約 6 割 → 210 万 × 60%</td></tr>
+        <tr><td><strong>目標市場（シェア 10%）</strong></td><td class="num"><strong>約 13 万人</strong></td><td>ここが ADHT の目標ユーザー数（累計ダウンロード）</td></tr>
+      </tbody>
+    </table>
+    <ul>
+      <li>TAM（理論上の最大市場）: <strong>約 130 万人</strong></li>
+      <li>SOM（狙うシェア 10%）: <strong>約 13 万ユーザー</strong> — 以降の収支はこの数字を「到達時」として計算する</li>
+    </ul>
+
+    <h2 id="model">3. 収益モデル — 二段プラン（v0.2）</h2>
+    <p>
+      価格は <strong>99 円を「入口」、490 円を「本命」</strong>とする二段構え。
+      <strong>年額プランは作らない</strong>（決定 → §10）。Pro の差別化は機能の出し惜しみではなく<strong>「AI モデルの切替」＝頭脳のグレード</strong>とする。
+    </p>
+    <table>
+      <thead>
+        <tr><th style="width:9em;">プラン</th><th class="num" style="width:7em;">月額（税込）</th><th>位置づけ</th><th class="num" style="width:9em;">手取り/人・年 ※</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>ADHT+</strong></td><td class="num">99 円</td>
+          <td>衝動課金ライン（缶コーヒー以下）。AI 無制限の入口プラン。ローンチ検証価格を兼ねる</td>
+          <td class="num">約 920 円</td>
+        </tr>
+        <tr>
+          <td><strong>ADHT Pro</strong></td><td class="num">490 円</td>
+          <td><strong>AI モデルを切り替えられる</strong>（標準の flash-lite → 上位モデル）。「同じ機能・賢い頭脳」を買うプラン</td>
+          <td class="num">約 4,540 円</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="note">
+      ※ 手取り = 税込価格 ÷ 1.10（消費税）× 0.85（App Store Small Business Program 手数料 15%）× 12 ヶ月。
+      99 円 → 手取り約 77 円/月、490 円 → 約 379 円/月。
+      なお App Store の価格は国別の定義済みポイントから選ぶため、日本では 99 円がそのまま選べず<strong>実務上は 100 円になる見込み</strong>（App Store Connect で要確認。収支への影響は軽微）。
+    </p>
+    <ul>
+      <li><strong>課金者のプラン構成は Pro 25% と仮定</strong>（Y1 で実測する。§5 に感度分析）→ ブレンド手取りは <strong>約 1,820 円/人・年</strong></li>
+      <li>フリーミアム比率の指定条件「無課金 99% / 課金 1%」は §5 でこの前提自体を検証する</li>
+      <li>為替は 1 ドル = 150 円で換算</li>
+    </ul>
+
+    <h2 id="cost">4. コスト構造（年額）</h2>
+    <table>
+      <thead>
+        <tr><th>項目</th><th class="num" style="width:8em;">年額</th><th>内訳・仮定</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>開発人件費（安谷屋）</td><td class="num">312 万円</td><td>週 3 時間 × 52 週 = 156 時間 × 2 万円/時</td></tr>
+        <tr><td>Claude Code</td><td class="num">18 万円</td><td>Max プラン $100/月 × 12 ヶ月</td></tr>
+        <tr><td>Apple Developer Program</td><td class="num">1.5 万円</td><td>年 14,900 円（TestFlight・App Store 配信に必須）</td></tr>
+        <tr><td>開発 PC（MacBook Air）</td><td class="num">5.5 万円</td><td>16.5 万円を 3 年償却</td></tr>
+        <tr><td>開発実機（iPhone 17e）</td><td class="num">3.3 万円</td><td>10 万円を 3 年償却</td></tr>
+        <tr><td><strong>固定費 小計</strong></td><td class="num"><strong>340 万円</strong></td><td></td></tr>
+        <tr><td>Gemini API — 無課金ユーザー分</td><td class="num">70 万円</td><td>13 万 DL 時: MAU 30%（約 3.9 万人）× 無料枠 1 日 3 回 × 1 回約 0.02 円（flash-lite）。<strong>ユーザー数に比例する変動費</strong></td></tr>
+        <tr><td>Gemini API — 課金ユーザー分</td><td class="num">25 万円</td><td>ADHT+ は flash-lite 無制限でほぼゼロ。<strong>Pro の上位モデル分が主</strong>（1 回 0.1〜0.3 円 × Pro 約 800 人）。フェアユース上限（例: 1 日 100 回）で暴走を防ぐ</td></tr>
+        <tr><td>マーケティング費</td><td class="num">50 万円</td><td>§7 で配分を定義（オーガニック中心＋小規模実験）</td></tr>
+        <tr><td><strong>総コスト（13 万 DL 到達時）</strong></td><td class="num"><strong>約 485 万円</strong></td><td></td></tr>
+      </tbody>
+    </table>
+    <p class="note">※ 消費税・振込手数料などは簡略化のため除外。人件費が総コストの 64% を占めるのがこの事業の構造。Pro の API 原価は手取り 379 円/月に対し最大でも月 50〜100 円に収まる設計とし、プラン単体で必ず粗利が出るようにする。</p>
+
+    <h2 id="pnl">5. 収支シミュレーション — 指定条件の答え合わせ</h2>
+
+    <h3>5.1 指定条件（13 万ユーザー・課金率 1%・月額 99 円のみ）の場合</h3>
+    <div class="verdict verdict-bad">
+      <strong>結論: 指定条件のままでは利益率 20% は構造的に不可能（年間 約 −340 万円の赤字）。</strong><br>
+      課金者 1,300 人 × 手取り約 920 円/年 = 売上 <strong>約 119 万円</strong> に対し、コストは <strong>約 460 万円</strong>（Pro なし構成）。
+      売上がコストの 3 割にも届かない。マーケティングの巧拙以前に、単価×転換率の設計を変える必要がある。
+    </div>
+
+    <h3>5.2 利益率 20% の成立条件</h3>
+    <p>
+      利益率 20% ⇔ 売上 = 総コスト ÷ 0.8。二段プラン構成ではコスト約 485 万円 → <strong>年間手取り売上 約 606 万円</strong>が必要。<br>
+      ブレンド手取り 1,820 円/人・年で割ると <strong>課金者 約 3,300 人（うち Pro 約 800 人）＝ 転換率 2.6%</strong>。これをどう作るかがマーケティング戦略の核心になる。
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>シナリオ</th><th class="num">ユーザー数</th><th class="num">課金率</th><th class="num">課金者</th>
+          <th class="num">手取り売上/年</th><th class="num">損益/年</th><th>評価</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>S0: 指定条件のまま（99 円のみ・1%）</td><td class="num">13 万</td><td class="num">1%</td><td class="num">1,300</td>
+          <td class="num">119 万円</td><td class="num ng">−341 万円</td><td class="ng">不成立（利益率 −287%）</td>
+        </tr>
+        <tr>
+          <td>S1: 99 円単独で転換率を上げる</td><td class="num">13 万</td><td class="num">4.8%</td><td class="num">6,300</td>
+          <td class="num">578 万円</td><td class="num">＋118 万円</td><td>成立するが転換率 4.8% は上位数%のアプリの水準。単一の薄利価格に全てを賭けることになる</td>
+        </tr>
+        <tr>
+          <td>S2: ユーザー数でカバー（99 円のみ・1%）</td><td class="num">63 万</td><td class="num">1%</td><td class="num">6,300</td>
+          <td class="num">578 万円</td><td class="num ng">赤字継続</td><td class="ng">不成立（市場 130 万の 48% が必要 = シェア 10% 目標と矛盾。無料ユーザーの AI 原価も比例増）</td>
+        </tr>
+        <tr>
+          <td>S3: 単一価格の値上げ（1% のまま）</td><td class="num">13 万</td><td class="num">1%</td><td class="num">1,300</td>
+          <td class="num">575 万円</td><td class="num">＋115 万円</td><td>成立には月額 <strong>約 490 円</strong>が必要 = 「99 円」の物語を捨てることになる（この 490 円が Pro 価格の由来）</td>
+        </tr>
+        <tr>
+          <td><strong>S4: 二段プラン（推奨）<br>99 円 ＋ Pro 490 円</strong></td><td class="num">13 万</td><td class="num"><strong>2.6%</strong></td><td class="num">3,300</td>
+          <td class="num">602 万円</td><td class="num ok"><strong>＋117 万円</strong></td><td class="ok"><strong>成立（利益率 20%）</strong>。99 円の物語と収益性を両取り</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="verdict verdict-good">
+      <strong>ヒロメの提案: S4 — 99 円は「広告」として使い、利益は Pro（AI モデル切替・490 円）で取る。</strong><br>
+      必要転換率は 99 円単独の 4.8% から <strong>2.6% までほぼ半減</strong>。痛点特化ツール（ニッチ×高い困りごと×当事者コミュニティ密着）の現実レンジ 3〜8% に対して十分射程内。
+      鍵は Pro 比率で、<strong>15% なら必要転換率 3.2%、25% で 2.6%、35% なら 2.1%</strong>。Y1 で実測する。
+    </div>
+
+    <h2 id="freemium">6. フリーミアム戦略 — 無料 / 99 円 / Pro の境界設計</h2>
+    <p>
+      設計思想は「<strong>機能で締め出さず、AI の量と頭脳で分ける</strong>」。
+      無料でも Todo アプリとして完結して使える（恥をかかせない・締め出さない）。
+      99 円で AI が無制限になり、<strong>Pro は同じ機能のまま AI モデルを切り替えられる</strong> — 提案・相談・ブリーフィングの「賢さ」を買うプラン。
+    </p>
+    <table>
+      <thead>
+        <tr><th style="width:13em;">機能</th><th>無料</th><th>ADHT+（99 円）</th><th>ADHT Pro（490 円）</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>タスク登録・進捗・ブリーフィング画面</td><td>✅ 無制限</td><td>✅ 無制限</td><td>✅ 無制限</td></tr>
+        <tr><td>AI 最初の一歩（A・B・C 提案）</td><td>✅ タスク登録時の自動生成のみ</td><td>✅ 再生成も無制限</td><td>✅ 再生成も無制限</td></tr>
+        <tr><td>AI チャット（一歩決め・タスク相談・相談タブ）</td><td>⚠️ 合計 1 日 3 回まで</td><td>✅ 無制限</td><td>✅ 無制限</td></tr>
+        <tr><td>ADHT からのコメント（人格ブリーフィング）</td><td>⚠️ 定型文（モック）</td><td>✅ AI 生成＋↻ 更新</td><td>✅ AI 生成＋↻ 更新</td></tr>
+        <tr><td>朝のブリーフィング通知</td><td>—</td><td>✅（マイルストーン 4 で実装）</td><td>✅</td></tr>
+        <tr><td>口調カスタマイズ（やさしめ/ツッコミ）</td><td>—</td><td>✅</td><td>✅</td></tr>
+        <tr><td><strong>AI モデル</strong></td><td>標準（Gemini flash-lite）</td><td>標準（Gemini flash-lite）</td><td><strong>✅ 上位モデルに切替可</strong>（設定画面で選択。例: Gemini Flash / Pro。エイリアス運用で世代交代に追従）</td></tr>
+        <tr><td>JSON エクスポート/インポート</td><td>✅（データの人質化はしない）</td><td>✅</td><td>✅</td></tr>
+      </tbody>
+    </table>
+    <ul>
+      <li><strong>年額プランは作らない</strong>（決定 → §10）。プランは上記 2 つの月額のみ。シンプルさを優先し、選択肢の多さで着手障壁を上げない — 料金表にもプロダクト思想を通す</li>
+      <li><strong>データは絶対に人質にしない</strong> — エクスポートは無料のまま。信頼が最大のマーケティング資産</li>
+      <li>無料枠 1 日 3 回は AI 原価の上限キャップでもある（§4 の変動費の管理弁）。Pro にはフェアユース上限（例: 1 日 100 回）を設け、プラン単体で必ず粗利が出るようにする</li>
+      <li>Pro の訴求コピー案: 「<strong>同じ ADHT、賢い頭脳。</strong>」— 機能差ではなくモデル差なので、無料/99 円ユーザーに劣等感を与えない</li>
+      <li>ADHD 当事者は「効く道具」への課金意欲が高い一方、衝動性は課金にも働く。だからこそ<strong>いつでも 1 タップで解約できる誠実設計</strong>にする（長期の信頼 → 解約率低下で LTV はむしろ上がる）</li>
+    </ul>
+
+    <h2 id="channel">7. チャネル戦略 — なぜオーガニック一択なのか</h2>
+    <h3>7.1 CAC の上限を先に計算する</h3>
+    <ul>
+      <li>課金者 1 人のブレンド手取りは約 152 円/月。平均継続 18 ヶ月と仮定すると LTV ≒ <strong>2,700 円</strong></li>
+      <li>健全ラインは LTV &gt; CAC × 3 → <strong>許容 CAC は課金者 1 人あたり約 900 円</strong></li>
+      <li>転換率 2.6% で換算すると <strong>1 ダウンロードあたり約 23 円</strong>しか広告に使えない</li>
+      <li>一方、アプリ広告の CPI 相場は 150〜400 円/DL → <strong>ペイド獲得は構造的に成立しない。オーガニック一択</strong></li>
+    </ul>
+
+    <h3>7.2 オーガニック 4 本柱</h3>
+    <table>
+      <thead>
+        <tr><th style="width:11em;">チャネル</th><th>やること</th><th>ヒロメの狙い</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>① X（ADHD 界隈）</td>
+          <td>当事者開発者としての Build in Public。「今週の ADHT」開発記、着手障壁ネタ、スクショ</td>
+          <td>「ADHD 当事者が自分用に作った」は最強の信頼コンテンツ。広告より RT される</td>
+        </tr>
+        <tr>
+          <td>② note 開発記</td>
+          <td>月 1 本。「なぜ A・B・C なのか」「なぜ番号にしないのか」など仕様の裏話をそのまま記事化</td>
+          <td>仕様書 §7 決定履歴が既にネタ帳。検索流入の資産になる</td>
+        </tr>
+        <tr>
+          <td>③ ASO（App Store 最適化）</td>
+          <td>「ADHD タスク管理」「先延ばし アプリ」「タスク 着手できない」等のニッチキーワードで上位を取る</td>
+          <td>ビッグワード「Todo」は捨てる。困りごと語彙で 1 位を取る方が転換率が高い</td>
+        </tr>
+        <tr>
+          <td>④ 当事者コミュニティ</td>
+          <td>発達障害系メディアへの寄稿、当事者系発信者へのギフトコード提供（PR 表記あり）</td>
+          <td>信頼できる人の「使ってる」が最も効く。ステマは絶対にしない</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>7.3 マーケティング予算 50 万円/年の配分</h3>
+    <table>
+      <thead>
+        <tr><th>用途</th><th class="num" style="width:8em;">年額</th><th>内容</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>ASO・ストア素材</td><td class="num">10 万円</td><td>キーワード調査ツール、スクリーンショット・プレビュー動画制作</td></tr>
+        <tr><td>X 広告の小規模実験</td><td class="num">20 万円</td><td>月 1.5〜2 万円で訴求コピーの A/B テスト（獲得目的ではなく学習目的）</td></tr>
+        <tr><td>当事者発信者タイアップ</td><td class="num">15 万円</td><td>ギフトコード＋少額謝礼。PR 表記必須</td></tr>
+        <tr><td>予備</td><td class="num">5 万円</td><td>効いたチャネルへ機動的に追加</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="roadmap">8. 3 年ロードマップと KPI</h2>
+    <table>
+      <thead>
+        <tr>
+          <th></th><th class="num">累計 DL</th><th class="num">課金率</th><th class="num">課金者</th>
+          <th class="num">手取り売上</th><th class="num">総コスト</th><th class="num">損益</th><th>テーマ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Y1（検証）</strong></td><td class="num">5,000</td><td class="num">2.5%</td><td class="num">125</td>
+          <td class="num">23 万円</td><td class="num">364 万円</td><td class="num ng">−341 万円</td>
+          <td>最重要 KPI は<strong>転換率と Pro 比率の実測</strong>。2.5% と Pro 25% が出るかを検証し、出なければ §6 の境界を再設計</td>
+        </tr>
+        <tr>
+          <td><strong>Y2（拡大）</strong></td><td class="num">4 万</td><td class="num">2.5%</td><td class="num">1,000</td>
+          <td class="num">182 万円</td><td class="num">420 万円</td><td class="num ng">−238 万円</td>
+          <td>オーガニック 4 本柱をフル稼働。ASO ニッチワード 1 位を取る</td>
+        </tr>
+        <tr>
+          <td><strong>Y3（到達）</strong></td><td class="num">13 万</td><td class="num">2.6%</td><td class="num">3,300</td>
+          <td class="num">602 万円</td><td class="num">485 万円</td><td class="num ok"><strong>＋117 万円</strong></td>
+          <td><strong>単年で利益率 20% 達成</strong>（シェア 10% 到達）</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="verdict verdict-bad">
+      <strong>正直な注記:</strong> Y1〜Y2 の累積赤字は約 580 万円で、その大半（年 312 万円）は安谷屋の人件費。
+      単年黒字化は Y3、<strong>累積回収は Y4 以降</strong>になる。
+      この赤字を「先行投資」と割り切るか、Y1〜Y2 の稼働を週 3 時間より圧縮して損益分岐を早めるかは、経営判断としてレビューで決めたい。
+    </div>
+    <h3>追跡する KPI（優先順）</h3>
+    <ol>
+      <li><strong>課金転換率</strong>（目標 2.6%）と <strong>Pro 比率</strong>（目標 25%）— この 2 つが事業の生死を決める</li>
+      <li><strong>D7 残存率</strong>（目標 25%+）— ADHD 向けアプリは「3 日で忘れられる」が最大の敵。朝ブリーフィング通知が武器</li>
+      <li><strong>解約率</strong>（月 5% 以下）— LTV 18 ヶ月の前提を守る</li>
+      <li>オーガニック流入比率 / ASO 検索順位</li>
+    </ol>
+
+    <h2 id="guardrail">9. ガードレール — ヒロメがやらないこと</h2>
+    <ul>
+      <li><strong>医療・治療効果を謳わない</strong>（「ADHD が改善」等は薬機法リスク。あくまで「タスクの着手を手伝う道具」）</li>
+      <li><strong>不安・恥の訴求をしない</strong>（「片付けられないあなた」系のコピーは RSD に刺さる。プロダクトの人格と矛盾する）</li>
+      <li><strong>ダークパターンを使わない</strong>（解約妨害・偽カウントダウン・誤タップ誘導。99 円の信頼は 1 回で壊れる）</li>
+      <li><strong>ステマをしない</strong>（タイアップは必ず PR 表記。景表法対応）</li>
+      <li><strong>データを人質にしない</strong>（エクスポートは永久に無料）</li>
+    </ul>
+
+    <h2 id="decisions">10. 決定履歴</h2>
+    <table>
+      <thead>
+        <tr><th style="width:8em;">日付</th><th>決定</th><th>理由</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>2026-08-15</td>
+          <td><strong>年額プランは作らない</strong>（安谷屋決定）</td>
+          <td>プランは月額 2 つのみ。料金の選択肢を増やして着手障壁を上げない</td>
+        </tr>
+        <tr>
+          <td>2026-08-15</td>
+          <td><strong>上位プラン（ADHT Pro）の差別化は「AI モデルの切替」</strong>（安谷屋決定）</td>
+          <td>機能の出し惜しみではなく頭脳のグレードで分ける。高い API 原価を高いプランに紐づけられ、原価構造とも整合する</td>
+        </tr>
+        <tr>
+          <td>2026-08-15</td>
+          <td>v0.1 レビューを受けて二段プラン化（99 円単独案から変更）</td>
+          <td>税・手数料込みの実手取りで再計算すると 99 円単独は転換率 4.8% が必要と判明。Pro 併設で必要転換率が 2.6% まで半減する</td>
+        </tr>
+        <tr>
+          <td>2026-08-15</td>
+          <td>事業ゴールを「小遣い稼ぎ＋負けない構造」に再定義（安谷屋決定）→ <a href="../business/index.html">事業方針書</a>を新設し、本書の 13 万 DL・利益率 20% 計画は<strong>上振れシナリオに格下げ</strong></td>
+          <td>勝敗ラインは事業方針書 §4（L2: 課金者 360 人）が正。マーケ予算 50 万円（§7.3）は L1 到達後に解禁する将来案となる</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="next">11. 次のアクション（レビュー後）</h2>
+    <ol>
+      <li>この戦略書のレビュー — 特に「Pro 比率 25% の仮定」「Y1〜Y2 の累積赤字の扱い」の 2 点</li>
+      <li>承認後: 仕様書に「フリーミアム境界（§6）と AI モデル切替」を機能要件として反映（現仕様は「課金なし」前提のため、メジャーバージョンアップ = v2.0 相当の変更になる）</li>
+      <li>App Store 公開に向けた前提整理: サブスク実装（StoreKit 2・2 プラン）、日本ストアの価格ポイント確認（99 円 or 100 円）、プライバシーポリシー</li>
+    </ol>
+
+    <h2 id="claude">12. 実行体制 — Claude 活用方針</h2>
+    <p>
+      この戦略の最大の制約は<strong>安谷屋の稼働が週 3 時間（年 156 時間）</strong>しかないこと。
+      同時に、人件費 312 万円/年は総コストの 64% を占める最希少資源でもある。よって実行体制の原則はひとつ:
+    </p>
+    <div class="verdict verdict-good">
+      <strong>安谷屋の 1 時間 = 2 万円、Claude の実行は実質ほぼゼロ円。<br>
+      安谷屋は「判断と本人性」だけに使い、実行はすべて Claude に落とす。</strong><br>
+      週 3 時間を「作業時間」ではなく「承認時間」に変換する。これができれば人件費 312 万円は実質「監督・承認費」になり、156 時間で数百時間分の実行量が出せる。
+    </div>
+
+    <h3>12.1 役割分担の原則</h3>
+    <table>
+      <thead>
+        <tr><th style="width:15em;">人間（安谷屋）にしかできないこと</th><th>Claude に全部落とすこと</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <ul style="margin:0;">
+              <li>意思決定（仕様承認・価格・リリース判断）</li>
+              <li>実機での体感確認</li>
+              <li>Apple 関連の手続き・支払い</li>
+              <li><strong>「当事者本人の声」としての発信の最終チェック</strong>（Build in Public の信頼は本人性が担保。生成文をそのまま出すと資産が毀損する）</li>
+            </ul>
+          </td>
+          <td>
+            <ul style="margin:0;">
+              <li>仕様書・プロトタイプ・アプリ実装・検証（既存パイプライン）</li>
+              <li>マーケコンテンツの下書き全量（X・note・ASO）</li>
+              <li>サポート文面・レビュー返信案</li>
+              <li>アプリ内 AI（Gemini プロンプト）の改善と評価</li>
+              <li>KPI 集計と「決定キュー」の準備</li>
+            </ul>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>12.2 領域別の活用方針</h3>
+    <table>
+      <thead>
+        <tr><th style="width:11em;">領域</th><th>Claude がやること</th><th>安谷屋の工程</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>① 開発<br><span class="note">パイプラインの完全非同期化</span></td>
+          <td>仕様案 → プロトタイプ → 実装 → シミュレータ検証・スクショまでを<strong>安谷屋の不在中に</strong>済ませ、レビュー可能な形（差分＋スクショ）で積んでおく。v1.3〜v1.5 で 5 周実証済みの流れを v2.0 の重い実装（StoreKit 2 の 2 プラン課金・AI モデル切替・朝通知）にもそのまま適用。定期実行（cron）で「毎朝 analyze＋ビルド確認 → 壊れたら修正案まで用意」</td>
+          <td>差分＋スクショを見て承認/差戻し（1 件 10 分）。サンドボックス課金の実機テストのみ人間</td>
+        </tr>
+        <tr>
+          <td>② マーケ運用<br><span class="note">ヒロメ人格を運用エンジンに</span></td>
+          <td>コミットログ・決定履歴から「今週の ADHT」X 投稿を週分まとめて下書き。note 月 1 本（§7 決定履歴がネタ帳）をほぼ完成稿まで。ASO キーワード調査・ストア文言・競合定点観測レポート。<strong>薬機法・景表法・RSD 配慮のガードレール（§9）チェックも Claude が門番</strong>として全コピーに機械的に適用</td>
+          <td>X 投稿を<strong>本人の言葉に直して</strong>投稿。note 最終チェック。ここが唯一の人間工程</td>
+        </tr>
+        <tr>
+          <td>③ サポート<br><span class="note">人間ゼロで回す設計</span></td>
+          <td>App Store レビュー返信案・FAQ・問い合わせテンプレを生成。トーンはプロダクト人格と同じ RSD 配慮で統一。13 万 DL 時のサポート量は週 3 時間では対応不能なため、最初から自動化前提で設計する</td>
+          <td>返信の承認のみ</td>
+        </tr>
+        <tr>
+          <td>④ アプリ内 AI の品質<br><span class="note">転換率 2.6% の生命線</span></td>
+          <td>Gemini のプロンプトを Claude が作成・改善。<strong>合成ユーザーとの会話シミュレーション＋ガードレール違反チェックのオフライン評価ハーネス</strong>を構築して回す。Pro 向け上位モデルのプロンプト調整も同様。全パターンの人力テストは不可能な領域</td>
+          <td>体感での最終確認</td>
+        </tr>
+        <tr>
+          <td>⑤ 経営<br><span class="note">Claude が「安谷屋の ADHT」になる</span></td>
+          <td>KPI（転換率・Pro 比率・D7・解約率）を週次集計し、<strong>「今週決めるべきことを 3 件以内・各 3 択」に絞った決定キュー</strong>を提示。ADHT がユーザーにやっていること（今日はこの 3 つだけ・最初の一歩）を、経営者としての安谷屋にそのまま適用する</td>
+          <td>決定キューに回答（30 分）</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>12.3 週 3 時間の時間割（標準形）</h3>
+    <table>
+      <thead>
+        <tr><th style="width:6em;">時間</th><th>内容</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num">60 分</td><td>開発レビュー — Claude が積んだ差分＋スクショを承認/差戻し</td></tr>
+        <tr><td class="num">30 分</td><td>実機確認 — 体感チェックは人間にしかできない</td></tr>
+        <tr><td class="num">45 分</td><td>マーケ承認 — X 投稿を本人の言葉に直して投稿、note 最終チェック</td></tr>
+        <tr><td class="num">30 分</td><td>経営 — KPI レポートと「決定キュー 3 件」に回答</td></tr>
+        <tr><td class="num">15 分</td><td>バッファ（Apple 手続き等）</td></tr>
+      </tbody>
+    </table>
+    <ul>
+      <li><strong>「決定待ちで止まらない」構造にする</strong> — 安谷屋が席を立った瞬間から Claude が次週分を積み始める。決定が必要な項目は決定キューに溜め、実行可能な作業は先に進めておく</li>
+      <li>Claude Max（$100/月 = 年 18 万円、§4 計上済み）を使い切る運用が前提。委任をためらう閾値は「安谷屋 1 時間 2 万円 vs Claude ほぼゼロ円」で判断する — 迷ったら落とす</li>
+      <li>この戦略書自体がこの方式（Claude が下書き・検証まで実行 → 安谷屋がレビューと決定）で作られており、体制の実証第 1 号である</li>
+    </ul>
+
+  </main>
+</body>
+</html>
