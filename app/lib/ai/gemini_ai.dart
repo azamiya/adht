@@ -193,4 +193,35 @@ ${tasks.isEmpty ? '（タスクなし）' : _taskListContext(tasks)}
       return fallback.consultSync(tasks, userText);
     }
   }
+
+  @override
+  Future<String> taskConsult(Task task, String userText) async {
+    final chatLog = task.chat
+        .map((m) => '${m.role == 'user' ? 'ユーザー' : 'AI'}: ${m.text}')
+        .join('\n');
+    try {
+      final text = await _generate('''
+$_adhtPersona
+ユーザーは「最初の一歩」を決めたあと、このタスク専属の相談チャットで話しかけている。
+あなたはこのタスクの伴走役。
+
+${_taskContext(task)}
+決定した最初の一歩: ${task.firstStep ?? '（未決定）'}
+進捗度: ${task.progress}%
+${chatLog.isEmpty ? '' : 'これまでの会話:\n$chatLog\n'}
+ユーザーのメッセージ: $userText
+
+答え方:
+- 進め方の相談（次は何を？等）→ 決めた一歩と進捗を踏まえて「次の5分」を1つだけ示す
+- 詰まった・難しい → 一歩をさらに小さく割る具体案を1つ
+- だるい・やる気がない → まず受け止め、進捗の事実を肯定し、半分だけ等のハードル下げを提案
+- 終わった・できた → 称賛し、進捗スライダーの更新か「完了」ボタンを促す
+- 日本語で1〜3文。説教・恥をかかせる表現は禁止
+
+出力: 返答本文のみ''');
+      return text.trim();
+    } catch (_) {
+      return fallback.taskConsultSync(task, userText);
+    }
+  }
 }

@@ -78,11 +78,27 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     store.updateTask(t, (x) => x.chat.add(ChatMessage(role: 'user', text: text)));
     setState(() => _aiTyping = true);
     _scrollToBottom();
+
+    if (t.firstStep != null) {
+      // 決定後: タスク専属の相談モード（仕様 §2.2 v1.5）
+      store.ai.taskConsult(t, text).then((reply) {
+        if (!mounted) return;
+        final t2 = task;
+        if (t2 != null) {
+          store.updateTask(
+              t2, (x) => x.chat.add(ChatMessage(role: 'ai', text: reply)));
+        }
+        setState(() => _aiTyping = false);
+        _scrollToBottom();
+      });
+      return;
+    }
+
+    // 決定前: 入力支援（v1.3） — A・B・C はいじらない
     store.ai.chat(t, text).then((result) {
       if (!mounted) return;
       final t2 = task;
       if (t2 != null) {
-        // v1.3: チャットは入力支援に徹する — A・B・C はいじらない
         store.updateTask(t2, (x) {
           x.chat.add(ChatMessage(
               role: 'ai', text: result.reply, proposal: result.proposal));
@@ -183,7 +199,10 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
               const SectionLabel('🔋 進捗'),
               _progressCard(t),
               ..._stepSection(t),
-              const SectionLabel('💬 AIと話して最初の一歩を決める'),
+              // チャットのモード（v1.5）: 決定前=着手支援 / 決定後=タスク相談
+              SectionLabel(t.firstStep != null
+                  ? '💬 AIにタスクを相談'
+                  : '💬 AIと話して最初の一歩を決める'),
               _chatBox(t),
               const SizedBox(height: 20),
               FilledButton(
@@ -405,6 +424,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   }
 
   Widget _chatBox(Task t) {
+    final consultMode = t.firstStep != null;
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -414,12 +434,14 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       child: Column(
         children: [
           if (t.chat.isEmpty && !_aiTyping)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
               child: Text(
-                '自分の言葉で書けば、それがそのまま最初の一歩になります\n（例:「レシートを机に出すだけ」）',
+                consultMode
+                    ? '進め方も気分も、このタスクのことならなんでもどうぞ\n（例:「次は何をすればいい？」「詰まった」）'
+                    : '自分の言葉で書けば、それがそのまま最初の一歩になります\n（例:「レシートを机に出すだけ」）',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                     fontSize: 12, height: 1.7, color: AdhtColors.muted),
               ),
             ),
@@ -446,7 +468,8 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                   onSubmitted: (_) => _sendChat(),
                   style: const TextStyle(fontSize: 13.5),
                   decoration: InputDecoration(
-                    hintText: 'やれそうなことを自分の言葉で…',
+                    hintText:
+                        consultMode ? 'このタスクについて相談…' : 'やれそうなことを自分の言葉で…',
                     isDense: true,
                     filled: true,
                     fillColor: const Color(0xFFF0F0F5),

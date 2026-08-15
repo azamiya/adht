@@ -165,4 +165,29 @@ class MockAi implements AiClient {
         Duration(milliseconds: 500 + _random.nextInt(400)));
     return consultSync(tasks, userText);
   }
+
+  /// タスク単位の相談（v1.5）: 決定後の伴走役
+  String taskConsultSync(Task t, String text) {
+    final step = t.firstStep ?? '決めた一歩';
+    if (RegExp(r'終わ|できた|完了|やった').hasMatch(text)) {
+      return 'ナイス！🎉 進捗スライダーを上げておきましょう。全部終わったなら「完了する」ボタンでスパッと消しちゃってください';
+    }
+    if (RegExp(r'次|なにす|何す|どう進め|進め方|そのあと|その後').hasMatch(text)) {
+      return 'いまの一歩は「$step」（進捗${t.progress}%）。それが済んだら、同じ要領で「次の5分」を決めるだけです。大きく考えなくてOK、刻んでいきましょう';
+    }
+    if (RegExp(r'詰ま|わからない|分からない|むず|難し|とまっ|止まっ').hasMatch(text)) {
+      return '詰まったのは一歩がまだ大きいサインです。「${t.title}」の中で「これならできる」と思える部分だけ切り出しましょう。資料を開くだけ、1行書くだけ、でも前進です';
+    }
+    if (RegExp(r'だる|やる気|疲れ|しんど|むり|無理').hasMatch(text)) {
+      return '無理しなくてOK。進捗${t.progress}%まで来てるのは事実です。今日は「$step」の半分だけでも勝ちにしましょう。ダメなら明日の自分に任せて店じまいで正解';
+    }
+    return '「${t.title}」の相談ですね。進め方でも気分でも何でもどうぞ。ちなみに決めた一歩は「$step」、いま進捗${t.progress}%です';
+  }
+
+  @override
+  Future<String> taskConsult(Task task, String userText) async {
+    await Future<void>.delayed(
+        Duration(milliseconds: 400 + _random.nextInt(400)));
+    return taskConsultSync(task, userText);
+  }
 }

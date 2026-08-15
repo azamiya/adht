@@ -12,7 +12,7 @@ import '../store/app_store.dart';
 import '../ui/style.dart';
 
 /// アプリのバージョン（SemVer 2.0.0、仕様書とメジャー.マイナーを揃える。pubspec.yaml と同期）
-const String kAppVersion = '1.4.0';
+const String kAppVersion = '1.5.0';
 
 /// ⑥ 設定: 口調・ブリーフィング時刻・JSONインポート/エクスポート（仕様 §2.4）
 class SettingsScreen extends StatefulWidget {

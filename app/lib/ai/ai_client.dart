@@ -23,4 +23,7 @@ abstract class AiClient {
 
   /// AIに相談: 全タスクを踏まえた横断チャット（仕様 §2.6 v1.3）
   Future<String> consult(List<Task> tasks, Tone tone, String userText);
+
+  /// タスク単位のAI相談: 最初の一歩の決定後、そのタスク専属の伴走役（仕様 §2.2 v1.5）
+  Future<String> taskConsult(Task task, String userText);
 }
