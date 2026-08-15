@@ -270,6 +270,95 @@ body {
 .badge.p-futsuu  { background: var(--p-futsuu); }
 .badge.p-karui   { background: var(--p-karui); }
 .badge.deadline  { background: #f0f0f5; color: var(--ios-muted); font-weight: 500; }
+
+/* ---- 進捗度: 充電池マーク＝表示専用、記録はスライダー（v1.4） ---- */
+.battery {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2.5px 3px;
+  border: 1.5px solid #a5a5ad;
+  border-radius: 4.5px;
+  position: relative;
+  background: #fff;
+  vertical-align: middle;
+}
+.battery::after { /* 電池の端子 */
+  content: "";
+  position: absolute;
+  right: -4.5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 7px;
+  background: #a5a5ad;
+  border-radius: 0 2px 2px 0;
+}
+.battery .bar {
+  width: 4.5px;
+  height: 10px;
+  border-radius: 1.5px;
+  background: #e4e4e9;
+  transition: background 0.2s;
+}
+/* 25%=赤 / 50%=オレンジ / 75%以上=緑 */
+.battery.q1 .bar:nth-child(-n+1) { background: var(--p-gekiomo); }
+.battery.q2 .bar:nth-child(-n+2) { background: var(--p-omoi); }
+.battery.q3 .bar:nth-child(-n+3) { background: var(--p-karui); }
+.battery.q4 .bar:nth-child(-n+4) { background: var(--p-karui); }
+
+/* 進捗スライダー（タスク詳細） */
+.progress-card {
+  background: var(--ios-card);
+  border-radius: 14px;
+  padding: 14px 16px 10px;
+}
+.progress-row { display: flex; align-items: center; gap: 12px; }
+.progress-val {
+  min-width: 48px;
+  text-align: right;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.progress-card input[type="range"] {
+  flex: 1;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--accent) 0%, var(--accent) calc(var(--pct, 0) * 1%), #e4e4e9 calc(var(--pct, 0) * 1%));
+  background: #e4e4e9;
+  outline: none;
+}
+.progress-card input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #d0d0d5;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+.progress-card input[type="range"]::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #d0d0d5;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+.progress-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--ios-muted);
+  padding: 6px 8px 0;
+}
 .badge.deadline.today   { background: #fff3e0; color: #e65100; }
 .badge.deadline.overdue { background: #ffebee; color: var(--ios-red); }
 
@@ -426,6 +515,7 @@ body {
 .bm-refresh:active { transform: rotate(360deg); }
 
 .briefing-card {
+  cursor: pointer;
   background: var(--ios-card);
   border-radius: 16px;
   padding: 15px 16px;

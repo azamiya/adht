@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ADHT — 仕様書 v1.3</title>
+  <title>ADHT — 仕様書 v1.4</title>
   <link rel="stylesheet" href="assets/common.css">
 </head>
 <body>
   <main>
     <nav class="breadcrumb">
-      adht / docs / 仕様書 v1.3
+      adht / docs / 仕様書 v1.4
     </nav>
 
     <h1>ADHT — Attention Deficit Hyperactivity Todo 仕様書</h1>
 
     <dl class="meta">
-      <dt>バージョン</dt><dd>v1.3（SemVer 表記・左脳/右脳の並び順ルール・タスク編集・チャット簡素化・決定UI改善・軽い順ソート・AIに相談タブ）</dd>
+      <dt>バージョン</dt><dd>v1.4（タスク進捗度 3 段階＋充電池マーク UI、JSON 形式 version 2 と後方互換インポート）</dd>
       <dt>作成日</dt><dd>2026-08-15</dd>
       <dt>更新日</dt><dd>2026-08-15</dd>
       <dt>対象ユーザー</dt><dd>安谷屋 個人</dd>
@@ -122,6 +122,18 @@
       <li>左脳・右脳での絞り込み表示</li>
     </ul>
 
+    <h4>進捗度（v1.4 追加）</h4>
+    <p>
+      タスクに<strong>進捗度を 0% / 25% / 50% / 75% / 100% の 5 段階</strong>で記録できる。
+      記録はタスク詳細画面の<strong>スライダー</strong>（25% 刻みでスナップ）、表示は<strong>4 目盛りの充電池マーク</strong>。
+    </p>
+    <ul>
+      <li><strong>記録 UI＝スライダー</strong>（タスク詳細画面）。電池マークのタップ切替は「わかりにくい」ため不採用</li>
+      <li><strong>表示 UI＝充電池マーク</strong>（表示専用）。タスクカード・ブリーフィングカード・タスク詳細に表示。色は 25%＝赤 / 50%＝オレンジ / <strong>75%以上＝緑</strong>、0% は空</li>
+      <li>新規タスクの初期値は 0%</li>
+      <li>進捗度は「完了」とは独立（完了＝削除の仕様は変わらない）。100% になっても自動では完了しない</li>
+    </ul>
+
     <h4>UI ルール: 左脳は左、右脳は右</h4>
     <p>
       <strong>左脳と右脳が並ぶ場面では、必ず「左＝左脳、右＝右脳」の順に置く</strong>（一覧の縦 2 分割と同じ空間対応を全 UI で守る）。
@@ -139,11 +151,12 @@
       <li>将来のバージョン間移行に備えて、JSON には<strong>形式バージョンを含むエンベロープ</strong>を付ける:
         <pre><code>{
   "format": "adht-tasks",
-  "version": 1,
+  "version": 2,
   "exportedAt": "2026-08-15T09:41:00Z",
   "tasks": [ { Task... } ]
 }</code></pre>
-      旧バージョンの JSON を読むときはインポート側でマイグレーションする（欠けたフィールドはデフォルト値で補完）</li>
+      形式バージョンの履歴: <strong>version 1</strong>（〜アプリ v1.3.0）→ <strong>version 2</strong>（アプリ v1.4.0〜、<code>progress</code>（0〜100、25 刻み）追加）</li>
+      <li><strong>互換ルール（v1.4 で明文化）</strong>: 旧 → 新のインポートは<strong>常にサポート</strong>する（例: v1.3.0 でエクスポートした version 1 の JSON を v1.4.0 にインポート可。欠けたフィールドはデフォルト値で補完 — progress は 0%）。逆方向（新形式の JSON を旧アプリへ＝ダウングレードインポート）は<strong>サポートしない</strong>。自分より新しい version の JSON を読んだ場合は「アプリを更新してください」とエラー表示して何も変更しない</li>
     </ul>
 
     <h3>2.5 ブリーフィング画面（設計論点）</h3>
@@ -235,7 +248,7 @@
         </tr>
         <tr>
           <td>④ ブリーフィング</td>
-          <td>「今日はこの 3 つだけ」を表示（§2.5）。各タスクに最初の一歩・所要時間目安・期限を添える。朝の通知タップでこの画面に着地する。</td>
+          <td>「今日はこの 3 つだけ」を表示（§2.5）。各タスクに最初の一歩・所要時間目安・期限を添える。<strong>カードのタップでタスク詳細へ遷移</strong>（完了・提案ボタンは除く）。朝の通知タップでこの画面に着地する。</td>
         </tr>
         <tr>
           <td>⑤ AIに相談</td>

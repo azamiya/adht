@@ -8,8 +8,12 @@
   "use strict";
 
   // セマンティック バージョニング 2.0.0 準拠。修正ごとに更新する。
-  // 仕様書とバージョンを揃える（仕様書 v1.3 ⇔ アプリ v1.3.x）
-  const APP_VERSION = "1.3.0";
+  // 仕様書とバージョンを揃える（仕様書 v1.4 ⇔ アプリ v1.4.x）
+  const APP_VERSION = "1.4.0";
+
+  // エクスポートJSONの形式バージョン。
+  // v2: progress（進捗度 0-100%）追加。v1（〜アプリv1.3.0）のインポートは可（progress=0で補完）。
+  const EXPORT_FORMAT_VERSION = 2;
 
   const STORAGE_KEY = "adht-proto-v1";
   const PRIORITY = {
@@ -49,6 +53,7 @@
       chat: [],          // AIとの会話 [{role: "user"|"ai", text, proposal?}]
       suggestions: [],
       firstStep: null,   // 決定した「最初の一歩」
+      progress: 0,       // 進捗度 0/25/50/75/100 %（v1.4）
       createdAt: new Date().toISOString(),
     };
   }
@@ -66,6 +71,7 @@
           }
           t.suggestions = (t.suggestions || []).slice(0, 3);
           if (t.firstStep === undefined) t.firstStep = null;
+          t.progress = normalizeProgress(t.progress); // v1.3以前のデータ移行
         });
         return s;
       }
@@ -333,6 +339,24 @@
       a.deadline.localeCompare(b.deadline));
   }
 
+  /* ---------- 進捗度（v1.4: 0〜100%を25%刻み、充電池マークは表示専用） ---------- */
+
+  function normalizeProgress(v) {
+    if ([0, 25, 50, 75, 100].includes(v)) return v;
+    if (v === 1) return 25; // 旧3段階(1/2/3)からの移行
+    if (v === 2) return 50;
+    if (v === 3) return 75;
+    return 0;
+  }
+
+  function batteryHtml(t) {
+    const bars = t.progress / 25; // 0〜4目盛り
+    return `
+      <span class="battery q${bars}" title="進捗 ${t.progress}%">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span>
+      </span>`;
+  }
+
   function taskCardHtml(t, { compact = false, showBrain = true } = {}) {
     return `
       <div class="task-card${compact ? " compact" : ""}" data-id="${t.id}">
@@ -340,6 +364,7 @@
         <div class="task-main">
           <div class="task-title">${esc(t.title)}</div>
           <div class="task-badges">
+            ${batteryHtml(t)}
             ${showBrain ? `<span class="badge brain-${t.brainType}">${BRAIN[t.brainType]}</span>` : ""}
             <span class="badge p-${t.priority}">${PRIORITY[t.priority].label}</span>
             ${deadlineBadge(t.deadline)}
@@ -452,6 +477,7 @@
           ${esc(t.firstStep || t.suggestions[0] || "まず5分だけタイマーをセットして着手")}
         </div>
         <div class="bc-meta">
+          ${batteryHtml(t)}
           <span class="badge p-${t.priority}">${PRIORITY[t.priority].label}</span>
           <span class="badge deadline">${PRIORITY[t.priority].time}</span>
           ${deadlineBadge(t.deadline)}
@@ -467,6 +493,13 @@
     });
     cardsEl.querySelectorAll("[data-open]").forEach((b) => {
       b.addEventListener("click", () => openDetail(b.dataset.open));
+    });
+    // カード本体のタップでもタスク詳細へ（ボタン類は除く）
+    cardsEl.querySelectorAll(".briefing-card").forEach((card) => {
+      card.addEventListener("click", (e) => {
+        if (e.target.closest("button")) return;
+        openDetail(card.dataset.id);
+      });
     });
   }
 
@@ -524,9 +557,19 @@
     body.innerHTML = `
       <div class="detail-title">${esc(t.title)}</div>
       <div class="detail-badges">
+        ${batteryHtml(t)}
         <span class="badge brain-${t.brainType}">${BRAIN[t.brainType]}</span>
         <span class="badge p-${t.priority}">${PRIORITY[t.priority].label}</span>
         ${deadlineBadge(t.deadline)}
+      </div>
+
+      <div class="section-label">🔋 進捗</div>
+      <div class="progress-card">
+        <div class="progress-row">
+          <input type="range" id="progressSlider" min="0" max="100" step="25" value="${t.progress}">
+          <span class="progress-val" id="progressVal">${t.progress}%</span>
+        </div>
+        <div class="progress-ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
       </div>
 
       ${stepSection}
@@ -580,6 +623,22 @@
           renderBriefing();
         }
       });
+    });
+    // 進捗スライダー（0/25/50/75/100%、電池マークは表示専用）
+    const slider = $("#progressSlider");
+    slider.addEventListener("input", () => {
+      $("#progressVal").textContent = `${slider.value}%`;
+      const batt = body.querySelector(".detail-badges .battery");
+      if (batt) {
+        batt.className = `battery q${Number(slider.value) / 25}`;
+        batt.title = `進捗 ${slider.value}%`;
+      }
+    });
+    slider.addEventListener("change", () => {
+      t.progress = Number(slider.value);
+      save();
+      renderList();
+      renderBriefing();
     });
 
     const thread = $("#chatThread");
@@ -797,7 +856,7 @@
   function buildExportJson() {
     return JSON.stringify({
       format: "adht-tasks",
-      version: 1,
+      version: EXPORT_FORMAT_VERSION,
       exportedAt: new Date().toISOString(),
       tasks: state.tasks,
     }, null, 2);
@@ -846,6 +905,13 @@
       setIoStatus(`知らない形式です（format: ${parsed.format}）。何も変更していません`, true);
       return;
     }
+    // 互換ルール: 古い形式（v1 = アプリv1.3.0以前）は取り込める。
+    // 自分より新しい形式へのダウングレードインポートは非対応。
+    if (parsed && !Array.isArray(parsed) && typeof parsed.version === "number" &&
+        parsed.version > EXPORT_FORMAT_VERSION) {
+      setIoStatus(`このJSONはより新しい形式（version ${parsed.version}）です。アプリを更新してからインポートしてください`, true);
+      return;
+    }
     if (!Array.isArray(rawTasks)) {
       setIoStatus("tasks の配列が見つかりません。何も変更していません", true);
       return;
@@ -867,6 +933,7 @@
         chat: Array.isArray(r.chat) ? r.chat : [],
         suggestions: Array.isArray(r.suggestions) ? r.suggestions.slice(0, 3) : [],
         firstStep: typeof r.firstStep === "string" ? r.firstStep : null,
+        progress: normalizeProgress(r.progress), // v1(進捗なし)は0で補完、旧3段階は%へ変換
         createdAt: r.createdAt || new Date().toISOString(),
       });
     }
