@@ -3,8 +3,11 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../ai/ai_client.dart';
+import '../ai/gemini_ai.dart';
 import '../ai/mock_ai.dart';
 import '../models/task.dart';
+import '../secrets.dart';
 
 /// インポート結果
 sealed class ImportResult {
@@ -30,17 +33,22 @@ class AppStore extends ChangeNotifier {
   static const _settingsKey = 'adht-settings';
 
   final SharedPreferences _prefs;
-  final MockAi ai;
+  final AiClient ai;
 
   List<Task> tasks = [];
   AppSettings settings = AppSettings();
 
   /// その日のブリーフィング文面（画面出入りで変わりすぎないようキャッシュ）
   String? _briefingText;
+  bool _briefingLoading = false;
 
   static Future<AppStore> load() async {
     final prefs = await SharedPreferences.getInstance();
-    final store = AppStore(prefs, MockAi());
+    // キー未設定ならモックで動く（secrets.example.dart 参照）
+    final AiClient ai = geminiApiKey.isNotEmpty
+        ? GeminiAi(apiKey: geminiApiKey)
+        : MockAi();
+    final store = AppStore(prefs, ai);
     try {
       final rawTasks = prefs.getString(_tasksKey);
       if (rawTasks != null) {
@@ -62,20 +70,28 @@ class AppStore extends ChangeNotifier {
       store.tasks = store._seedTasks();
       store._persist();
     }
+    // 提案が未生成のタスクを裏で埋める（シード直後・過去の生成失敗のリトライ）
+    store._fillMissingSuggestions();
     return store;
+  }
+
+  void _fillMissingSuggestions() {
+    for (final t in tasks.where((t) => t.suggestions.isEmpty)) {
+      ai.generateSuggestions(t).then((s) {
+        if (tasks.contains(t)) updateTask(t, (x) => x.suggestions = s);
+      }).catchError((_) {});
+    }
   }
 
   List<Task> _seedTasks() {
     final now = DateTime.now();
     Task seed(String title, BrainType b, Priority p, int days) {
-      final t = Task(
+      return Task(
         title: title,
         brainType: b,
         priority: p,
         deadline: now.add(Duration(days: days)),
       );
-      t.suggestions = ai.generateSuggestions(t);
-      return t;
     }
 
     return [
@@ -154,11 +170,22 @@ class AppStore extends ChangeNotifier {
     return list.take(3).toList();
   }
 
-  String briefingText() {
+  /// ブリーフィング文面。未生成なら null を返しつつ裏で生成を開始する。
+  String? briefingText() {
     final picked = briefingPick();
     if (picked.isEmpty) return '今日のタスクはありません。ゆっくりどうぞ ☕';
-    return _briefingText ??=
-        ai.briefingMessage(picked.length, settings.tone);
+    if (_briefingText != null) return _briefingText;
+    if (!_briefingLoading) {
+      _briefingLoading = true;
+      ai.briefingMessage(picked, settings.tone).then((msg) {
+        _briefingText = msg;
+        _briefingLoading = false;
+        notifyListeners();
+      }).catchError((_) {
+        _briefingLoading = false;
+      });
+    }
+    return null;
   }
 
   /* ---------- 設定 ---------- */

@@ -29,7 +29,9 @@ class BriefingScreen extends StatelessWidget {
             child: Text('今日のブリーフィング',
                 style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700)),
           ),
-          _BriefingMessage(dateStr: dateStr, text: store.briefingText()),
+          _BriefingMessage(
+              dateStr: dateStr,
+              text: store.briefingText() ?? '（今日のコメントを考え中…）'),
           const SizedBox(height: 14),
           for (final task in tasks) ...[
             _BriefingCard(store: store, task: task),

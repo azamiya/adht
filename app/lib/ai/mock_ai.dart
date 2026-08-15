@@ -1,13 +1,18 @@
 import 'dart:math';
 
 import '../models/task.dart';
+import 'ai_client.dart';
 
 /// AI クライアントのモック実装。
-/// マイルストーン3で Gemini API 呼び出しに差し替える（インターフェースは維持）。
-class MockAi {
+/// Gemini API キー未設定時と、API エラー時のフォールバックとして使う
+/// （仕様 §2.2: オフラインでもタスク登録は完了できる — AI はあくまで補助）。
+class MockAi implements AiClient {
   MockAi([Random? random]) : _random = random ?? Random();
 
   final Random _random;
+
+  /// モックの応答遅延（実API感を出す）
+  Duration get _latency => Duration(milliseconds: 700 + _random.nextInt(600));
 
   List<T> _pick<T>(List<T> pool, int n) {
     final copy = [...pool];
@@ -18,8 +23,8 @@ class MockAi {
     return out;
   }
 
-  /// 着手の入口 A・B・C を生成（仕様 §2.2: 常に並列な3案）
-  List<String> generateSuggestions(Task task) {
+  /// 同期版（シード生成やフォールバックで使用）
+  List<String> suggestionsSync(Task task) {
     final t = task.title.replaceFirst(RegExp(r'を?(行う|やる|する)$'), '');
     final generic = [
       'タイマーを5分だけセットして、「$t」に関するメモを1行だけ書く',
@@ -48,10 +53,8 @@ class MockAi {
       ...generic,
       ...(task.brainType == BrainType.leftBrain ? left : right),
     ];
-    final userMsgs = task.chat
-        .where((m) => m.role == 'user')
-        .map((m) => m.text)
-        .toList();
+    final userMsgs =
+        task.chat.where((m) => m.role == 'user').map((m) => m.text).toList();
     final ctx = userMsgs.length > 2
         ? userMsgs.sublist(userMsgs.length - 2).join('、')
         : userMsgs.join('、');
@@ -63,19 +66,7 @@ class MockAi {
     return picked.take(3).toList();
   }
 
-  /// チャットへの返事（仕様 §2.2: 提案の作り直しを伝える）
-  String chatReply(String userText) {
-    final replies = [
-      'なるほど、「$userText」ですね。それ前提で上の入口を出し直しました。今なら A が一番ハードル低いと思います',
-      'OK、条件に入れました。上の A・B・C を更新したので、ピンとくるものだけ見てください',
-      '了解です。それを踏まえて入口を作り直しました。完璧じゃなくてOK、まず5分だけが合言葉です',
-      'ええやん、だいぶ具体的になってきた。上の3つ、どれか1個だけ選んでみて',
-    ];
-    return replies[_random.nextInt(replies.length)];
-  }
-
-  /// ブリーフィング冒頭の「ADHTからのコメント」（仕様 §2.5: ハイブリッド口調）
-  String briefingMessage(int taskCount, Tone tone) {
+  String briefingSync(int taskCount, Tone tone) {
     final gentle = [
       'おはようございます。今日はこの$taskCountつだけでOKです。1つ目の「最初の一歩」だけ、どうですか？',
       '全部やらなくて大丈夫。上から順じゃなくて、一番ラクそうなものから始めてOKです。',
@@ -86,13 +77,37 @@ class MockAi {
       'はいはい、タブ100個開く前にこれ見て。今日は$taskCountつだけ。最初の一歩は用意しといたで。',
       'やる気が出るのを待っとっても来ぉへんで。5分だけ動いたらやる気が後から来るやつや。',
     ];
-    // ハイブリッド: 基本やさしめ、ツッコミ設定なら確率を上げる。恥・人格否定はどちらにも無し。
     final tsukkomiRate = tone == Tone.tsukkomi ? 0.7 : 0.25;
     final pool = _random.nextDouble() < tsukkomiRate ? tsukkomi : gentle;
     return pool[_random.nextInt(pool.length)];
   }
 
-  /// モックの応答遅延（実API感を出す）
-  Duration get latency =>
-      Duration(milliseconds: 900 + _random.nextInt(700));
+  String replySync(String userText) {
+    final replies = [
+      'なるほど、「$userText」ですね。それ前提で上の入口を出し直しました。今なら A が一番ハードル低いと思います',
+      'OK、条件に入れました。上の A・B・C を更新したので、ピンとくるものだけ見てください',
+      '了解です。それを踏まえて入口を作り直しました。完璧じゃなくてOK、まず5分だけが合言葉です',
+      'ええやん、だいぶ具体的になってきた。上の3つ、どれか1個だけ選んでみて',
+    ];
+    return replies[_random.nextInt(replies.length)];
+  }
+
+  @override
+  Future<List<String>> generateSuggestions(Task task) async {
+    await Future<void>.delayed(_latency);
+    return suggestionsSync(task);
+  }
+
+  @override
+  Future<ChatResult> chat(Task task, String userText) async {
+    await Future<void>.delayed(_latency);
+    return ChatResult(
+        reply: replySync(userText), suggestions: suggestionsSync(task));
+  }
+
+  @override
+  Future<String> briefingMessage(List<Task> tasks, Tone tone) async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    return briefingSync(tasks.length, tone);
+  }
 }

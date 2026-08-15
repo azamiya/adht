@@ -32,11 +32,11 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     final t = task;
     if (t != null && t.suggestions.isEmpty) {
       _generating = true;
-      Future.delayed(store.ai.latency, () {
+      store.ai.generateSuggestions(t).then((s) {
         if (!mounted) return;
         final t2 = task;
         if (t2 != null) {
-          store.updateTask(t2, (x) => x.suggestions = store.ai.generateSuggestions(x));
+          store.updateTask(t2, (x) => x.suggestions = s);
         }
         setState(() => _generating = false);
       });
@@ -58,16 +58,17 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     store.updateTask(t, (x) => x.chat.add(ChatMessage(role: 'user', text: text)));
     setState(() => _aiTyping = true);
     _scrollToBottom();
-    Future.delayed(store.ai.latency, () {
+    store.ai.chat(t, text).then((result) {
       if (!mounted) return;
       final t2 = task;
       if (t2 != null) {
         store.updateTask(t2, (x) {
-          x.suggestions = store.ai.generateSuggestions(x);
+          x.suggestions = result.suggestions;
           x.chat.add(ChatMessage(
             role: 'ai',
-            text: store.ai.chatReply(text),
-            proposal: x.suggestions.isNotEmpty ? x.suggestions.first : null,
+            text: result.reply,
+            proposal:
+                result.suggestions.isNotEmpty ? result.suggestions.first : null,
           ));
         });
       }
